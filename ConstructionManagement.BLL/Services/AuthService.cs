@@ -1,5 +1,7 @@
 ﻿using ConstructionManagement.Domain.Entities;
 using ConstructionManagement.Dtos;
+using ConstructionManagement.DAL.Data;
+using Microsoft.EntityFrameworkCore;
 namespace ConstructionManagement.BLL.Services
 {
     public class AuthService : IAuthService
