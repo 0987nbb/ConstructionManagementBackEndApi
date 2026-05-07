@@ -15,8 +15,18 @@ namespace ConstructionManagement.BLL.Services
             _tokenService = tokenService;
         }
 
-        public async Task<string> Register(RegisterDto dto)
+        public async Task<AuthResultDto> Register(RegisterDto dto)
         {
+            var exists = await _context.Users.AnyAsync(x => x.Email == dto.Email);
+            if (exists)
+            {
+                return new AuthResultDto
+                {
+                    Success = false,
+                    Message = "Email already exists"
+                };
+            }
+
             var user = new AppUser
             {
                 FullName = dto.FullName,
@@ -28,20 +38,41 @@ namespace ConstructionManagement.BLL.Services
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return "User Registered";
+            return new AuthResultDto
+            {
+                Success = true,
+                Message = "User Registered"
+            };
         }
 
-        public async Task<string> Login(LoginDto dto)
+        public async Task<AuthResultDto> Login(LoginDto dto)
         {
             var user = await _context.Users.FirstOrDefaultAsync(x => x.Email == dto.Email);
 
             if (user == null)
-                return "Invalid Email";
+            {
+                return new AuthResultDto
+                {
+                    Success = false,
+                    Message = "Invalid Email"
+                };
+            }
 
             if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
-                return "Invalid Password";
+            {
+                return new AuthResultDto
+                {
+                    Success = false,
+                    Message = "Invalid Password"
+                };
+            }
 
-            return _tokenService.CreateToken(user);
+            return new AuthResultDto
+            {
+                Success = true,
+                Message = "Login Successful",
+                Token = _tokenService.CreateToken(user)
+            };
         }
     }
 }

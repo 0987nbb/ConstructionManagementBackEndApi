@@ -4,7 +4,7 @@ namespace ConstructionManagement.BLL.Services
 {
     public interface IAuthService
     {
-        Task<string> Register(RegisterDto dto);
-        Task<string> Login(LoginDto dto);
+        Task<AuthResultDto> Register(RegisterDto dto);
+        Task<AuthResultDto> Login(LoginDto dto);
     }
 }
