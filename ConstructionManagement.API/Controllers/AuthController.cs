@@ -1,6 +1,9 @@
-﻿using ConstructionManagement.BLL.Services;
+using ConstructionManagement.BLL.Services;
+using ConstructionManagement.Domain.Constants;
 using ConstructionManagement.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 [ApiController]
 [Route("api/auth")]
@@ -14,8 +17,14 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register(RegisterDto dto)
+    [AllowAnonymous]
+    public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
         var result = await _auth.Register(dto);
         if (!result.Success)
         {
@@ -26,8 +35,14 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginDto dto)
+    [AllowAnonymous]
+    public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
         var result = await _auth.Login(dto);
         if (!result.Success)
         {
@@ -35,5 +50,24 @@ public class AuthController : ControllerBase
         }
 
         return Ok(result);
+    }
+
+    [HttpGet("me")]
+    [Authorize]
+    public IActionResult Me()
+    {
+        return Ok(new
+        {
+            userId = User.FindFirstValue(ClaimTypes.NameIdentifier),
+            email = User.FindFirstValue(ClaimTypes.Email),
+            role = User.FindFirstValue(ClaimTypes.Role)
+        });
+    }
+
+    [HttpGet("admin-only")]
+    [Authorize(Roles = ApplicationRoles.Admin)]
+    public IActionResult AdminOnly()
+    {
+        return Ok(new { message = "Admin access granted." });
     }
 }
