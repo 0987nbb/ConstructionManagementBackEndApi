@@ -23,7 +23,10 @@ namespace ConstructionManagement.DAL.Data
                 entity.Property(x => x.Email).HasMaxLength(255).IsRequired();
                 entity.Property(x => x.PasswordHash).HasMaxLength(255).IsRequired();
                 entity.Property(x => x.Role).HasMaxLength(50).IsRequired();
+                entity.Property(x => x.PhoneNumber).HasMaxLength(20);
                 entity.Property(x => x.CreatedAt).IsRequired();
+                entity.Property(x => x.IsActive).IsRequired();
+                entity.Property(x => x.IsDeleted).IsRequired();
 
                 entity.ToTable(t =>
                     t.HasCheckConstraint("CK_AppUsers_Role",

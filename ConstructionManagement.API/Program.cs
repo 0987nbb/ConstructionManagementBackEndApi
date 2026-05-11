@@ -1,5 +1,8 @@
 using ConstructionManagement.BLL.Services;
 using ConstructionManagement.DAL.Data;
+using ConstructionManagement.DAL.Repositories;
+using ConstructionManagement.DAL.Repositories.Interfaces;
+using ConstructionManagement.API.Seed;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -19,6 +22,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is missing in configuration.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("Jwt:Issuer is missing in configuration.");
@@ -64,9 +70,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-}
+await AdminSeeder.SeedAsync(app.Services, app.Configuration);
 
 app.MapOpenApi();
 app.MapScalarApiReference();

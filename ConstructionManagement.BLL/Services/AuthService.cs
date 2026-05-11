@@ -35,7 +35,9 @@ namespace ConstructionManagement.BLL.Services
                 FullName = dto.FullName.Trim(),
                 Email = normalizedEmail,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, workFactor: 12),
-                Role = ApplicationRoles.Client
+                Role = ApplicationRoles.Client,
+                IsActive = true,
+                IsDeleted = false
             };
 
             _context.Users.Add(user);
@@ -52,13 +54,22 @@ namespace ConstructionManagement.BLL.Services
         public async Task<AuthResultDto> Login(LoginDto dto)
         {
             var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Email == normalizedEmail);
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Email == normalizedEmail && !x.IsDeleted);
             if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             {
                 return new AuthResultDto
                 {
                     Success = false,
                     Message = "Invalid email or password."
+                };
+            }
+
+            if (!user.IsActive)
+            {
+                return new AuthResultDto
+                {
+                    Success = false,
+                    Message = "User account is inactive. Contact administrator."
                 };
             }
 
