@@ -6,5 +6,6 @@ namespace ConstructionManagement.BLL.Services
     {
         Task<AuthResultDto> Register(RegisterDto dto);
         Task<AuthResultDto> Login(LoginDto dto);
+        Task<AuthResultDto> SetPassword(SetPasswordDto dto);
     }
 }

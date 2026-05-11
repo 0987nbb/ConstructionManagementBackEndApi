@@ -1,26 +1,27 @@
-using ConstructionManagement.DAL.Data;
+using ConstructionManagement.DAL.Repositories.Interfaces;
 using ConstructionManagement.Domain.Constants;
 using ConstructionManagement.Domain.Entities;
 using ConstructionManagement.Dtos;
-using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace ConstructionManagement.BLL.Services
 {
     public class AuthService : IAuthService
     {
-        private readonly AppDbContext _context;
+        private readonly IUserRepository _userRepository;
         private readonly TokenService _tokenService;
 
-        public AuthService(AppDbContext context, TokenService tokenService)
+        public AuthService(IUserRepository userRepository, TokenService tokenService)
         {
-            _context = context;
+            _userRepository = userRepository;
             _tokenService = tokenService;
         }
 
         public async Task<AuthResultDto> Register(RegisterDto dto)
         {
             var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
-            var exists = await _context.Users.AnyAsync(x => x.Email == normalizedEmail);
+            var exists = await _userRepository.EmailExistsAsync(normalizedEmail);
             if (exists)
             {
                 return new AuthResultDto
@@ -37,11 +38,12 @@ namespace ConstructionManagement.BLL.Services
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, workFactor: 12),
                 Role = ApplicationRoles.Client,
                 IsActive = true,
-                IsDeleted = false
+                IsDeleted = false,
+                MustChangePassword = false
             };
 
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+            await _userRepository.AddAsync(user);
+            await _userRepository.SaveChangesAsync();
 
             return new AuthResultDto
             {
@@ -54,13 +56,22 @@ namespace ConstructionManagement.BLL.Services
         public async Task<AuthResultDto> Login(LoginDto dto)
         {
             var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Email == normalizedEmail && !x.IsDeleted);
-            if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+            var user = await _userRepository.GetByEmailAsync(normalizedEmail);
+            if (user == null || user.IsDeleted || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             {
                 return new AuthResultDto
                 {
                     Success = false,
                     Message = "Invalid email or password."
+                };
+            }
+
+            if (user.MustChangePassword)
+            {
+                return new AuthResultDto
+                {
+                    Success = false,
+                    Message = "Password setup is pending. Use your invite link to set password first."
                 };
             }
 
@@ -91,6 +102,42 @@ namespace ConstructionManagement.BLL.Services
                 Role = user.Role,
                 ExpiresAtUtc = tokenResult.ExpiresAtUtc
             };
+        }
+
+        public async Task<AuthResultDto> SetPassword(SetPasswordDto dto)
+        {
+            var tokenHash = HashToken(dto.Token.Trim());
+            var user = await _userRepository.GetByPasswordSetupTokenHashAsync(tokenHash);
+            if (user == null || user.PasswordSetupTokenExpiresAtUtc is null || user.PasswordSetupTokenExpiresAtUtc < DateTime.UtcNow)
+            {
+                return new AuthResultDto
+                {
+                    Success = false,
+                    Message = "Invite link is invalid or expired."
+                };
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, workFactor: 12);
+            user.MustChangePassword = false;
+            user.PasswordSetupTokenHash = null;
+            user.PasswordSetupTokenExpiresAtUtc = null;
+            user.UpdatedAt = DateTime.UtcNow;
+            user.IsActive = true;
+
+            await _userRepository.SaveChangesAsync();
+
+            return new AuthResultDto
+            {
+                Success = true,
+                Message = "Password set successfully. You can now log in.",
+                Role = user.Role
+            };
+        }
+
+        private static string HashToken(string token)
+        {
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+            return Convert.ToHexString(bytes);
         }
     }
 }

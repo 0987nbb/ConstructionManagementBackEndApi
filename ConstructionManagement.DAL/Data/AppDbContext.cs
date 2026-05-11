@@ -27,6 +27,8 @@ namespace ConstructionManagement.DAL.Data
                 entity.Property(x => x.CreatedAt).IsRequired();
                 entity.Property(x => x.IsActive).IsRequired();
                 entity.Property(x => x.IsDeleted).IsRequired();
+                entity.Property(x => x.MustChangePassword).IsRequired();
+                entity.Property(x => x.PasswordSetupTokenHash).HasMaxLength(128);
 
                 entity.ToTable(t =>
                     t.HasCheckConstraint("CK_AppUsers_Role",

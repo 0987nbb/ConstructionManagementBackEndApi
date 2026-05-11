@@ -4,7 +4,7 @@ namespace ConstructionManagement.BLL.Services;
 
 public interface IUserService
 {
-    Task<ApiResponseDto<UserDto>> AddUserAsync(CreateUserDto dto);
+    Task<ApiResponseDto<InviteUserResponseDto>> AddUserAsync(CreateUserDto dto);
     Task<ApiResponseDto<List<UserDto>>> GetAllUsersAsync();
     Task<ApiResponseDto<UserDto>> GetUserByIdAsync(Guid id);
     Task<ApiResponseDto<UserDto>> UpdateUserAsync(Guid id, UpdateUserDto dto);

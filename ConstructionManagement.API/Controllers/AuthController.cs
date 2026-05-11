@@ -52,6 +52,24 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("set-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> SetPassword([FromBody] SetPasswordDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        var result = await _auth.SetPassword(dto);
+        if (!result.Success)
+        {
+            return BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+
     [HttpGet("me")]
     [Authorize]
     public IActionResult Me()

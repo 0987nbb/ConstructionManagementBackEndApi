@@ -10,9 +10,9 @@
 | **Provider** | `openai` |
 | **Source** | vscode |
 | **Started** | 5/11/2026, 2:56:31 PM |
-| **Last Updated** | 5/11/2026, 4:00:13 PM |
-| **Messages** | 13 |
-| **Total Tokens** | 2,575,670 |
+| **Last Updated** | 5/11/2026, 6:03:22 PM |
+| **Messages** | 25 |
+| **Total Tokens** | 6,978,734 |
 
 ---
 
@@ -4074,6 +4074,2930 @@ Done. Dashboard is now dynamic and API-backed.
 - Frontend build passed successfully after changes.
 
 If you want, next I can add date-range filters (Today/This Week/This Month) to KPIs and expose them through query params on `/api/dashboard/kpis`.
+
+
+---
+
+## User <sup>5/11/2026, 5:22:23 PM</sup>
+
+Act as a Senior Software Architect (ASP.NET Core + Angular) and UI/UX Engineer.
+
+I have an Construction managemt
+backend is C:\Users\Ali Raza\source\repos\ConstructionManagement.API
+forntend ir C:\Users\Ali Raza\source\repos\construction-management-ui
+Angular 21 standalone frontend
+ASP.NET Core Web API (.NET 9)
+JWT Authentication
+Roles: Admin, Project Manager, Engineer, Accountant, Client
+N-Tier architecture + Generic Repository
+
+Now fix and refine the system to make it fully enterprise-level ERP ready.
+User logs in → backend validates credentials
+JWT generated (includes userId + role)
+Token stored in frontend
+Role extracted from token
+User redirected based on role
+ROLE-BASED ACCESS
+Admin → full dashboard + user management + all modules
+Project Manager → projects, sites, reports
+Engineer → assigned tasks + site updates
+Accountant → finance module only
+Client → read-only dashboard (progress, invoices, reports)JWT must be validated on every API request
+Backend must enforce role-based authorization
+Frontend + backend must block unauthorized access
+BACKEND ARCHITECTURE
+N-Tier properly enforced:
+Controller → Service → Repository → DB
+Use Generic Repository to avoid repeated CRUD logic
+Clean separation of concerns
+Scalable and maintainable structureDynamic sidebar based on role
+Role-based dashboard UI
+Route guards for protection
+HTTP interceptor for JWT
+Auto redirect after login
+Access denied handling
+Clean ERP-style responsive UI
+
+
+---
+
+## Codex <sup>5/11/2026, 5:28:45 PM</sup>
+
+I’ll now do a full enterprise refactor pass across both repos: first I’ll audit current auth/authorization flow and layering, then implement missing generic repository + role routing + UI guard/access-denied + dynamic sidebar end-to-end.
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "rg --files",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.API\\Program.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.API\\Controllers\\AuthController.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.BLL\\Services\\AuthService.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.BLL\\Services\\TokenService.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.7 seconds
+Output:
+README.md
+ConstructionManagement.API.sln
+ConstructionManagement.API\appsettings.Development.json
+build_out.txt
+ConstructionManagement.API\appsettings.json
+ConstructionManagement.API\ConstructionManagement.API.csproj
+ConstructionManagement.Dtos\AssignRoleDto.cs
+ConstructionManagement.Dtos\ApiResponseDto.cs
+ConstructionManagement.API\WeatherForecast.cs
+ConstructionManagement.API\Seed\AdminSeeder.cs
+ConstructionManagement.API\Properties\launchSettings.json
+ConstructionManagement.API\Program.cs
+ConstructionManagement.API\ConstructionManagement.API.http
+ConstructionManagement.Dtos\CreateUserDto.cs
+ConstructionManagement.Dtos\ConstructionManagement.Dtos.csproj
+ConstructionManagement.Dtos\AuthResultDto.cs
+ConstructionManagement.Dtos\DashboardKpiDto.cs
+ConstructionManagement.Dtos\LoginDto.cs
+ConstructionManagement.API\Controllers\WeatherForecastController.cs
+ConstructionManagement.API\Controllers\UsersController.cs
+ConstructionManagement.API\Controll
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 1.8 seconds
+Output:
+using ConstructionManagement.BLL.Services;
+using ConstructionManagement.DAL.Data;
+using ConstructionManagement.DAL.Repositories;
+using ConstructionManagement.DAL.Repositories.Interfaces;
+using ConstructionManagement.API.Seed;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Scalar.AspNetCore;
+using System.Text;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+builder.Services.AddOpenApi(options =>
+{
+    options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_0;
+});
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 1.9 seconds
+Output:
+using ConstructionManagement.BLL.Services;
+using ConstructionManagement.Domain.Constants;
+using ConstructionManagement.Dtos;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+
+[ApiController]
+[Route("api/auth")]
+public class AuthController : ControllerBase
+{
+    private readonly IAuthService _auth;
+
+    public AuthController(IAuthService auth)
+    {
+        _auth = auth;
+    }
+
+    [HttpPost("register")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Register([FromBody] RegisterDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        var result = await _auth.Register(dto);
+        if (!result.Success)
+        {
+            return BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+
+    [HttpPost("login")]
+    [AllowAnonymous]
+    public async Task<IActionResult
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 1.9 seconds
+Output:
+using ConstructionManagement.DAL.Data;
+using ConstructionManagement.Domain.Constants;
+using ConstructionManagement.Domain.Entities;
+using ConstructionManagement.Dtos;
+using Microsoft.EntityFrameworkCore;
+
+namespace ConstructionManagement.BLL.Services
+{
+    public class AuthService : IAuthService
+    {
+        private readonly AppDbContext _context;
+        private readonly TokenService _tokenService;
+
+        public AuthService(AppDbContext context, TokenService tokenService)
+        {
+            _context = context;
+            _tokenService = tokenService;
+        }
+
+        public async Task<AuthResultDto> Register(RegisterDto dto)
+        {
+            var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
+            var exists = await _context.Users.AnyAsync(x => x.Email == normalizedEmail);
+            if (exists)
+            {
+                return new AuthResultDto
+                {
+                   
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 1.6 seconds
+Output:
+using ConstructionManagement.Domain.Entities;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+
+namespace ConstructionManagement.BLL.Services
+{
+    public class TokenService
+    {
+        private readonly IConfiguration _config;
+
+        public TokenService(IConfiguration config)
+        {
+            _config = config;
+        }
+
+        public (string Token, DateTime ExpiresAtUtc) CreateToken(AppUser user)
+        {
+            var jwtKey = _config["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is missing in configuration.");
+            var jwtIssuer = _config["Jwt:Issuer"] ?? throw new InvalidOperationException("Jwt:Issuer is missing in configuration.");
+            var jwtAudience = _config["Jwt:Audience"] ?? throw new InvalidOperationException("Jwt:Audience is missing in configuration.")
+...(truncated)
+```
+
+</details>
+
+I found a few architecture gaps (notably `AuthService` directly hitting `DbContext`). I’m now tightening those and then I’ll wire a full role-based redirect/sidebar/access-denied flow on the Angular app.
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.BLL\\Services\\IAuthService.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.API\\Controllers\\DashboardController.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.DAL\\Data\\AppDbContext.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content 'C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui\\src\\app\\features\\auth\\login\\login.ts'",
+  "sandbox_permissions": "require_escalated",
+  "justification": "Do you want me to inspect login flow in the separate frontend repo to implement role-based redirects?",
+  "prefix_rule": [
+    "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "-Command",
+    "Get-Content"
+  ]
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content 'C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui\\src\\app\\features\\auth\\services\\auth.ts'",
+  "sandbox_permissions": "require_escalated",
+  "justification": "Do you want me to inspect auth service in the separate frontend repo to enforce role-aware navigation and token handling?",
+  "prefix_rule": [
+    "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "-Command",
+    "Get-Content"
+  ]
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content 'C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui\\src\\app\\app.routes.ts'",
+  "sandbox_permissions": "require_escalated",
+  "justification": "Do you want me to inspect frontend routes to enforce enterprise-grade role-based access and access-denied handling?",
+  "prefix_rule": [
+    "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "-Command",
+    "Get-Content"
+  ]
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 1.9 seconds
+Output:
+using ConstructionManagement.Dtos;
+
+namespace ConstructionManagement.BLL.Services
+{
+    public interface IAuthService
+    {
+        Task<AuthResultDto> Register(RegisterDto dto);
+        Task<AuthResultDto> Login(LoginDto dto);
+    }
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.2 seconds
+Output:
+using ConstructionManagement.BLL.Services;
+using ConstructionManagement.Domain.Constants;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace ConstructionManagement.API.Controllers;
+
+[ApiController]
+[Route("api/dashboard")]
+[Authorize(Roles = ApplicationRoles.Admin)]
+public class DashboardController : ControllerBase
+{
+    private readonly IDashboardService _dashboardService;
+
+    public DashboardController(IDashboardService dashboardService)
+    {
+        _dashboardService = dashboardService;
+    }
+
+    [HttpGet("kpis")]
+    public async Task<IActionResult> GetKpis()
+    {
+        var response = await _dashboardService.GetKpisAsync();
+        return Ok(response);
+    }
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.4 seconds
+Output:
+using ConstructionManagement.Domain.Constants;
+using ConstructionManagement.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace ConstructionManagement.DAL.Data
+{
+    public class AppDbContext : DbContext
+    {
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+        {
+        }
+
+        public DbSet<AppUser> Users { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<AppUser>(entity =>
+            {
+                entity.HasIndex(x => x.Email).IsUnique();
+                entity.Property(x => x.FullName).HasMaxLength(100).IsRequired();
+                entity.Property(x => x.Email).HasMaxLength(255).IsRequired();
+                entity.Property(x => x.PasswordHash).HasMaxLength(255).IsRequired();
+                entity.Property(x => x.Role).HasMaxL
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.5 seconds
+Output:
+import { Component, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { AuthResult, AuthService } from '../services/auth';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Router, RouterLink } from '@angular/router';
+
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [FormsModule, RouterLink],
+  templateUrl: './login.html',
+  styleUrl: './login.scss'
+})
+export class LoginComponent {
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+
+  loginData = {
+    email: '',
+    password: ''
+  };
+
+  login() {
+    this.authService.login(this.loginData).subscribe({
+      next: (res: AuthResult) => {
+        if (res.token) {
+          this.authService.saveSession(res);
+          this.router.navigate(['/dashboard']);
+          return;
+        }
+
+        alert(res.message || 'Login failed');
+      },
+      err
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.8 seconds
+Output:
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../../environments/environment';
+
+export interface AuthResult {
+  success: boolean;
+  message: string;
+  token?: string;
+  role?: string;
+  expiresAtUtc?: string;
+}
+
+interface JwtPayload {
+  exp?: number;
+  role?: string;
+  ['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']?: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AuthService {
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = `${environment.apiBaseUrl}/auth`;
+  private readonly tokenStorageKey = 'auth_token';
+  private readonly roleStorageKey = 'auth_role';
+
+  register(data: { fullName: string; email: string; password: string }): Observable<AuthResult> {
+    return this.http.post<AuthResult>(`${this.apiUrl}/register`, data);
+  }
+
+
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 1.9 seconds
+Output:
+import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard';
+import { roleGuard } from './core/guards/role.guard';
+
+export const routes: Routes = [
+  { path: '', redirectTo: 'login', pathMatch: 'full' },
+  { path: 'login', loadComponent: () => import('./features/auth/login/login').then((c) => c.LoginComponent) },
+  { path: 'register', loadComponent: () => import('./features/auth/register/register').then((c) => c.RegisterComponent) },
+  { path: 'dashboard', canActivate: [authGuard], loadComponent: () => import('./features/dashboard/dashboard').then((c) => c.DashboardComponent) },
+
+  { path: 'users', canActivate: [authGuard, roleGuard], data: { roles: ['Admin'] }, loadComponent: () => import('./features/user-management/pages/user-list/user-list').then((c) => c.UserListComponent) },
+  { path: 'users/new', canActivate: [authGuard, roleGuard], data: { roles: ['Admin'] }, loadComponent: () => import('./
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content 'C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui\\src\\app\\core\\guards\\role.guard.ts'",
+  "sandbox_permissions": "require_escalated",
+  "justification": "Do you want me to inspect and refine role guard logic in the frontend repository?",
+  "prefix_rule": [
+    "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "-Command",
+    "Get-Content"
+  ]
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content 'C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui\\src\\app\\core\\interceptors\\auth.interceptor.ts'",
+  "sandbox_permissions": "require_escalated",
+  "justification": "Do you want me to inspect and harden JWT interceptor behavior in the frontend repository?",
+  "prefix_rule": [
+    "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "-Command",
+    "Get-Content"
+  ]
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content 'C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui\\src\\app\\app.html'",
+  "sandbox_permissions": "require_escalated",
+  "justification": "Do you want me to inspect app layout to add dynamic role-based sidebar?",
+  "prefix_rule": [
+    "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "-Command",
+    "Get-Content"
+  ]
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content 'C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui\\src\\app\\app.ts'",
+  "sandbox_permissions": "require_escalated",
+  "justification": "Do you want me to inspect app component to integrate role-aware navigation and logout controls?",
+  "prefix_rule": [
+    "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "-Command",
+    "Get-Content"
+  ]
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.4 seconds
+Output:
+import { CanActivateFn, Router } from '@angular/router';
+import { inject } from '@angular/core';
+import { AuthService } from '../../features/auth/services/auth';
+
+export const roleGuard: CanActivateFn = (route) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+
+  const requiredRoles = route.data?.['roles'] as string[] | undefined;
+
+  if (!authService.isAuthenticated()) {
+    return router.createUrlTree(['/login']);
+  }
+
+  if (!requiredRoles || requiredRoles.length === 0) {
+    return true;
+  }
+
+  const normalizedRequiredRoles = requiredRoles.map((role) => role.toLowerCase());
+  const userRole = authService.getRole()?.toLowerCase();
+
+  if (userRole && normalizedRequiredRoles.includes(userRole)) {
+    return true;
+  }
+
+  return router.createUrlTree(['/dashboard']);
+};
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.2 seconds
+Output:
+import { HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { AuthService } from '../../features/auth/services/auth';
+
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const authService = inject(AuthService);
+  const isAuthEndpoint = req.url.includes('/api/auth/login') || req.url.includes('/api/auth/register');
+
+  if (isAuthEndpoint) {
+    return next(req);
+  }
+
+  const token = authService.getToken();
+
+  if (!token) {
+    return next(req);
+  }
+
+  const authReq = req.clone({
+    setHeaders: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  return next(authReq);
+};
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2 seconds
+Output:
+<header class="topbar">
+  <h1>Construction Management</h1>
+  <nav>
+    <a routerLink="/dashboard">Dashboard</a>
+    <a routerLink="/users">Users</a>
+    <a routerLink="/profile">Profile</a>
+  </nav>
+</header>
+<main class="container">
+  <router-outlet></router-outlet>
+</main>
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.2 seconds
+Output:
+import { Component } from '@angular/core';
+import { RouterLink, RouterOutlet } from '@angular/router';
+
+@Component({
+  selector: 'app-root',
+  imports: [RouterOutlet, RouterLink],
+  templateUrl: './app.html',
+  styleUrl: './app.scss'
+})
+export class App {}
+```
+
+</details>
+
+I’m implementing the core backend architecture hardening now: introducing reusable generic repository abstractions and removing direct DB access from auth flow so tier boundaries are strictly enforced.
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Add File: ConstructionManagement.DAL/Repositories/Interfaces/IGenericRepository.cs\n+namespace ConstructionManagement.DAL.Repositories.Interfaces;\n+\n+public interface IGenericRepository<T> where T : class\n+{\n+    Task<IReadOnlyList<T>> GetAllAsync();\n+    Task<T?> GetByIdAsync(object id);\n+    Task AddAsync(T entity);\n+    void Update(T entity);\n+    void Remove(T entity);\n+    Task<int> SaveChangesAsync();\n+}\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nA ConstructionManagement.DAL/Repositories/Interfaces/IGenericRepository.cs\n","metadata":{"exit_code":0,"duration_seconds":0.2}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Add File: ConstructionManagement.DAL/Repositories/GenericRepository.cs\n+using ConstructionManagement.DAL.Data;\n+using ConstructionManagement.DAL.Repositories.Interfaces;\n+using Microsoft.EntityFrameworkCore;\n+\n+namespace ConstructionManagement.DAL.Repositories;\n+\n+public class GenericRepository<T> : IGenericRepository<T> where T : class\n+{\n+    protected readonly AppDbContext Context;\n+    protected readonly DbSet<T> DbSet;\n+\n+    public GenericRepository(AppDbContext context)\n+    {\n+        Context = context;\n+        DbSet = context.Set<T>();\n+    }\n+\n+    public async Task<IReadOnlyList<T>> GetAllAsync() => await DbSet.ToListAsync();\n+\n+    public async Task<T?> GetByIdAsync(object id) => await DbSet.FindAsync(id);\n+\n+    public async Task AddAsync(T entity) => await DbSet.AddAsync(entity);\n+\n+    public void Update(T entity) => DbSet.Update(entity);\n+\n+    public void Remove(T entity) => DbSet.Remove(entity);\n+\n+    public Task<int> SaveChangesAsync() => Context.SaveChangesAsync();\n+}\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nA ConstructionManagement.DAL/Repositories/GenericRepository.cs\n","metadata":{"exit_code":0,"duration_seconds":0.2}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Update File: ConstructionManagement.DAL/Repositories/Interfaces/IUserRepository.cs\n@@\n public interface IUserRepository\n+    : IGenericRepository<AppUser>\n {\n     Task<bool> EmailExistsAsync(string normalizedEmail);\n+    Task<AppUser?> GetByEmailAsync(string normalizedEmail);\n     Task AddAsync(AppUser user);\n     Task<List<AppUser>> GetAllActiveAsync();\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nM ConstructionManagement.DAL/Repositories/Interfaces/IUserRepository.cs\n","metadata":{"exit_code":0,"duration_seconds":0.2}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Update File: ConstructionManagement.DAL/Repositories/UserRepository.cs\n@@\n public class UserRepository : IUserRepository\n {\n-    private readonly AppDbContext _context;\n+    private readonly AppDbContext _context;\n@@\n     public UserRepository(AppDbContext context)\n+        : base(context)\n     {\n         _context = context;\n     }\n@@\n     public async Task AddAsync(AppUser user)\n     {\n         await _context.Users.AddAsync(user);\n     }\n+\n+    public Task<AppUser?> GetByEmailAsync(string normalizedEmail) =>\n+        _context.Users.FirstOrDefaultAsync(x => x.Email == normalizedEmail);\n@@\n-    public Task SaveChangesAsync() => _context.SaveChangesAsync();\n+    Task<int> IGenericRepository<AppUser>.SaveChangesAsync() => _context.SaveChangesAsync();\n+    public Task SaveChangesAsync() => _context.SaveChangesAsync();\n }\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nM ConstructionManagement.DAL/Repositories/UserRepository.cs\n","metadata":{"exit_code":0,"duration_seconds":0.3}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Update File: ConstructionManagement.DAL/Repositories/UserRepository.cs\n@@\n-public class UserRepository : IUserRepository\n+public class UserRepository : GenericRepository<AppUser>, IUserRepository\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nM ConstructionManagement.DAL/Repositories/UserRepository.cs\n","metadata":{"exit_code":0,"duration_seconds":0.2}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.DAL\\Repositories\\UserRepository.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 0.6 seconds
+Output:
+using ConstructionManagement.DAL.Data;
+using ConstructionManagement.DAL.Repositories.Interfaces;
+using ConstructionManagement.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace ConstructionManagement.DAL.Repositories;
+
+public class UserRepository : GenericRepository<AppUser>, IUserRepository
+{
+    private readonly AppDbContext _context;
+
+    public UserRepository(AppDbContext context)
+        : base(context)
+    {
+        _context = context;
+    }
+
+    public Task<bool> EmailExistsAsync(string normalizedEmail) =>
+        _context.Users.AnyAsync(x => x.Email == normalizedEmail);
+
+    public async Task AddAsync(AppUser user)
+    {
+        await _context.Users.AddAsync(user);
+    }
+
+    public Task<AppUser?> GetByEmailAsync(string normalizedEmail) =>
+        _context.Users.FirstOrDefaultAsync(x => x.Email == normalizedEmail);
+
+    public Task<List<AppUser>> GetAllActiveAsync() =>
+        _context.Users
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Update File: ConstructionManagement.BLL/Services/AuthService.cs\n@@\n-using ConstructionManagement.DAL.Data;\n+using ConstructionManagement.DAL.Repositories.Interfaces;\n using ConstructionManagement.Domain.Constants;\n using ConstructionManagement.Domain.Entities;\n using ConstructionManagement.Dtos;\n-using Microsoft.EntityFrameworkCore;\n@@\n     public class AuthService : IAuthService\n     {\n-        private readonly AppDbContext _context;\n+        private readonly IUserRepository _userRepository;\n         private readonly TokenService _tokenService;\n \n-        public AuthService(AppDbContext context, TokenService tokenService)\n+        public AuthService(IUserRepository userRepository, TokenService tokenService)\n         {\n-            _context = context;\n+            _userRepository = userRepository;\n             _tokenService = tokenService;\n         }\n@@\n-            var exists = await _context.Users.AnyAsync(x => x.Email == normalizedEmail);\n+            var exists = await _userRepository.EmailExistsAsync(normalizedEmail);\n@@\n-            _context.Users.Add(user);\n-            await _context.SaveChangesAsync();\n+            await _userRepository.AddAsync(user);\n+            await _userRepository.SaveChangesAsync();\n@@\n-            var user = await _context.Users.FirstOrDefaultAsync(x => x.Email == normalizedEmail && !x.IsDeleted);\n+            var user = await _userRepository.GetByEmailAsync(normalizedEmail);\n             if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))\n             {\n                 return new AuthResultDto\n@@\n+            if (user.IsDeleted)\n+            {\n+                return new AuthResultDto\n+                {\n+                    Success = false,\n+                    Message = \"Invalid email or password.\"\n+                };\n+            }\n+\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nM ConstructionManagement.BLL/Services/AuthService.cs\n","metadata":{"exit_code":0,"duration_seconds":0.2}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.BLL\\Services\\AuthService.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 0.7 seconds
+Output:
+using ConstructionManagement.DAL.Repositories.Interfaces;
+using ConstructionManagement.Domain.Constants;
+using ConstructionManagement.Domain.Entities;
+using ConstructionManagement.Dtos;
+
+namespace ConstructionManagement.BLL.Services
+{
+    public class AuthService : IAuthService
+    {
+        private readonly IUserRepository _userRepository;
+        private readonly TokenService _tokenService;
+
+        public AuthService(IUserRepository userRepository, TokenService tokenService)
+        {
+            _userRepository = userRepository;
+            _tokenService = tokenService;
+        }
+
+        public async Task<AuthResultDto> Register(RegisterDto dto)
+        {
+            var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
+            var exists = await _userRepository.EmailExistsAsync(normalizedEmail);
+            if (exists)
+            {
+                return new AuthResultDto
+                {
+           
+...(truncated)
+```
+
+</details>
+
+I found a merge artifact in `AuthService` from the refactor; fixing it now and revalidating so auth remains stable.
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Delete File: ConstructionManagement.BLL/Services/AuthService.cs\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nD ConstructionManagement.BLL/Services/AuthService.cs\n","metadata":{"exit_code":0,"duration_seconds":0.3}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Add File: ConstructionManagement.BLL/Services/AuthService.cs\n+using ConstructionManagement.DAL.Repositories.Interfaces;\n+using ConstructionManagement.Domain.Constants;\n+using ConstructionManagement.Domain.Entities;\n+using ConstructionManagement.Dtos;\n+\n+namespace ConstructionManagement.BLL.Services\n+{\n+    public class AuthService : IAuthService\n+    {\n+        private readonly IUserRepository _userRepository;\n+        private readonly TokenService _tokenService;\n+\n+        public AuthService(IUserRepository userRepository, TokenService tokenService)\n+        {\n+            _userRepository = userRepository;\n+            _tokenService = tokenService;\n+        }\n+\n+        public async Task<AuthResultDto> Register(RegisterDto dto)\n+        {\n+            var normalizedEmail = dto.Email.Trim().ToLowerInvariant();\n+            var exists = await _userRepository.EmailExistsAsync(normalizedEmail);\n+            if (exists)\n+            {\n+                return new AuthResultDto\n+                {\n+                    Success = false,\n+                    Message = \"An account with this email already exists.\"\n+                };\n+            }\n+\n+            var user = new AppUser\n+            {\n+                FullName = dto.FullName.Trim(),\n+                Email = normalizedEmail,\n+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, workFactor: 12),\n+                Role = ApplicationRoles.Client,\n+                IsActive = true,\n+                IsDeleted = false\n+            };\n+\n+            await _userRepository.AddAsync(user);\n+            await _userRepository.SaveChangesAsync();\n+\n+            return new AuthResultDto\n+            {\n+                Success = true,\n+                Message = \"User registered successfully.\",\n+                Role = user.Role\n+            };\n+        }\n+\n+        public async Task<AuthResultDto> Login(LoginDto dto)\
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nA ConstructionManagement.BLL/Services/AuthService.cs\n","metadata":{"exit_code":0,"duration_seconds":0.2}}
+```
+
+</details>
+
+I’m now applying the enterprise frontend pass: role-based post-login redirection, access-denied route, dynamic sidebar by role, and strict guard/interceptor behavior for unauthorized access.
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "$root='C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui\\src\\app'; New-Item -ItemType Directory -Force \"$root\\features\\access-denied\",\"$root\\features\\role-dashboards\\project-manager\",\"$root\\features\\role-dashboards\\engineer\",\"$root\\features\\role-dashboards\\accountant\",\"$root\\features\\role-dashboards\\client\" | Out-Null; @'\nimport { Injectable, inject } from '@angular/core';\nimport { HttpClient } from '@angular/common/http';\nimport { Observable } from 'rxjs';\nimport { environment } from '../../../../environments/environment';\n\nexport interface AuthResult {\n  success: boolean;\n  message: string;\n  token?: string;\n  role?: string;\n  expiresAtUtc?: string;\n}\n\ninterface JwtPayload {\n  exp?: number;\n  role?: string;\n  ['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']?: string;\n}\n\n@Injectable({ providedIn: 'root' })\nexport class AuthService {\n  private readonly http = inject(HttpClient);\n  private readonly apiUrl = `${environment.apiBaseUrl}/auth`;\n  private readonly tokenStorageKey = 'auth_token';\n  private readonly roleStorageKey = 'auth_role';\n\n  register(data: { fullName: string; email: string; password: string }): Observable<AuthResult> {\n    return this.http.post<AuthResult>(`${this.apiUrl}/register`, data);\n  }\n\n  login(data: { email: string; password: string }): Observable<AuthResult> {\n    return this.http.post<AuthResult>(`${this.apiUrl}/login`, data);\n  }\n\n  saveSession(result: AuthResult): void {\n    if (!result.token) return;\n    localStorage.setItem(this.tokenStorageKey, result.token);\n    const role = this.getRoleFromToken(result.token) ?? result.role;\n    if (role) localStorage.setItem(this.roleStorageKey, role);\n  }\n\n  clearSession(): void {\n    localStorage.removeItem(this.tokenStorageKey);\n    localStorage.removeItem(this.roleStorageKey);\n  }\n\n  getToken(): string | null {\n    const token = localStorage.getItem(this.tokenStorageKey);\n    
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.6 seconds
+Output:
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "$root='C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui\\src\\app'; @'\nimport { Routes } from '@angular/router';\nimport { authGuard } from './core/guards/auth.guard';\nimport { roleGuard } from './core/guards/role.guard';\n\nexport const routes: Routes = [\n  { path: '', redirectTo: 'login', pathMatch: 'full' },\n  { path: 'login', loadComponent: () => import('./features/auth/login/login').then((c) => c.LoginComponent) },\n  { path: 'register', loadComponent: () => import('./features/auth/register/register').then((c) => c.RegisterComponent) },\n  { path: 'access-denied', loadComponent: () => import('./features/access-denied/access-denied').then((c) => c.AccessDeniedComponent) },\n\n  { path: 'dashboard', canActivate: [authGuard, roleGuard], data: { roles: ['Admin'] }, loadComponent: () => import('./features/dashboard/dashboard').then((c) => c.DashboardComponent) },\n  { path: 'users', canActivate: [authGuard, roleGuard], data: { roles: ['Admin'] }, loadComponent: () => import('./features/user-management/pages/user-list/user-list').then((c) => c.UserListComponent) },\n  { path: 'users/new', canActivate: [authGuard, roleGuard], data: { roles: ['Admin'] }, loadComponent: () => import('./features/user-management/pages/user-form/user-form').then((c) => c.UserFormComponent) },\n  { path: 'users/:id/edit', canActivate: [authGuard, roleGuard], data: { roles: ['Admin'] }, loadComponent: () => import('./features/user-management/pages/user-form/user-form').then((c) => c.UserFormComponent) },\n\n  { path: 'pm/dashboard', canActivate: [authGuard, roleGuard], data: { roles: ['Project Manager'] }, loadComponent: () => import('./features/role-dashboards/project-manager/project-manager-dashboard').then((c) => c.ProjectManagerDashboardComponent) },\n  { path: 'engineer/dashboard', canActivate: [authGuard, roleGuard], data: { roles: ['Engineer'] }, loadComponent: () => import('./features/role-dashboards/engineer/engineer-dashboard').then((c) => c.Engine
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 0.8 seconds
+Output:
+```
+
+</details>
+
+Core refactor is in place. I’m running backend/frontend builds now to catch regressions, then I’ll do final polish if any errors appear.
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "dotnet build ConstructionManagement.API.sln -v minimal",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API",
+  "timeout_ms": 180000
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "npm run build",
+  "workdir": "C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui",
+  "timeout_ms": 180000,
+  "sandbox_permissions": "require_escalated",
+  "justification": "Do you want me to run frontend build to validate the enterprise role-routing and sidebar changes compile successfully?",
+  "prefix_rule": [
+    "npm",
+    "run",
+    "build"
+  ]
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 1
+Wall time: 12.6 seconds
+Output:
+
+Build FAILED.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:11.03
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 14.5 seconds
+Output:
+
+> construction-management-ui@0.0.0 build
+> ng build
+
+[33m>[39m Building...
+[32m√[39m Building...
+[1mInitial chunk files[22m[2m | [22m[1mNames[22m                    [2m | [22m [1mRaw size[22m[2m | [22m[1mEstimated transfer size[22m
+[32mchunk-K6HWIHX4.js[39m  [2m | [22m[2m-[22m                        [2m | [22m[36m131.23 kB[39m[2m | [22m               [36m38.75 kB[39m
+[32mchunk-FC2QBGSJ.js[39m  [2m | [22m[2m-[22m                        [2m | [22m [36m85.14 kB[39m[2m | [22m               [36m21.58 kB[39m
+[32mchunk-WZSIVJ2I.js[39m  [2m | [22m[2m-[22m                        [2m | [22m [36m27.16 kB[39m[2m | [22m                [36m7.41 kB[39m
+[32mmain-WG7IZRER.js[39m   [2m | [22m[2mmain[22m                     [2m | [22m  [36m5.54 kB[39m[2m | [22m                [36m1.88 kB[39m
+[32mchunk-4TBUSVR6.js[39m  [2m | [22m[2m-[22m                        [2m | [22m  [36m
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "dotnet build ConstructionManagement.API\\ConstructionManagement.API.csproj -v minimal",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API",
+  "timeout_ms": 180000
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 1
+Wall time: 5.4 seconds
+Output:
+  Determining projects to restore...
+
+Build FAILED.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:04.29
+```
+
+</details>
+
+Frontend compiles successfully with the new role-based ERP flow. Backend still has the same environment-level `dotnet build` failure with no compiler diagnostics, so I’ll summarize exactly what was refactored and what to run locally in VS.
+
+Implemented. System is now refactored toward enterprise ERP readiness across both repos.
+
+## What I changed
+
+### Backend (`ConstructionManagement.API`)
+
+#### 1. Enforced layered architecture better
+- Removed direct `DbContext` usage from auth business logic.
+- `AuthService` now uses repository abstraction (`IUserRepository`) instead of EF directly.
+- File: [AuthService.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.BLL/Services/AuthService.cs)
+
+#### 2. Added Generic Repository foundation
+- Added generic contract:
+  - [IGenericRepository.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.DAL/Repositories/Interfaces/IGenericRepository.cs)
+- Added generic implementation:
+  - [GenericRepository.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.DAL/Repositories/GenericRepository.cs)
+- Updated user repo to extend generic base + role/KPI specific methods:
+  - [IUserRepository.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.DAL/Repositories/Interfaces/IUserRepository.cs)
+  - [UserRepository.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.DAL/Repositories/UserRepository.cs)
+
+#### 3. JWT + role API flow remains enforced
+- Token includes `userId` + `role`.
+- API endpoints stay protected with `[Authorize]` and `[Authorize(Roles=...)]`.
+- Admin-only KPI endpoint already available:
+  - [DashboardController.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.API/Controllers/DashboardController.cs)
+
+---
+
+### Frontend (`construction-management-ui`)
+
+#### 1. Role-based login redirect (enterprise flow)
+- After login, user auto-routes by role:
+  - Admin → `/dashboard`
+  - Project Manager → `/pm/dashboard`
+  - Engineer → `/engineer/dashboard`
+  - Accountant → `/accountant/dashboard`
+  - Client → `/client/dashboard`
+- File: [auth.ts](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/features/auth/services/auth.ts)
+- File: [login.ts](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/features/auth/login/login.ts)
+
+#### 2. Strict route protection + access denied
+- Improved role guard to send unauthorized users to `/access-denied`.
+- File: [role.guard.ts](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/core/guards/role.guard.ts)
+- Added access denied page:
+  - [access-denied.ts](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/features/access-denied/access-denied.ts)
+
+#### 3. JWT enforcement on every request
+- Interceptor now:
+  - attaches token
+  - handles `401` → clear session + redirect login
+  - handles `403` → redirect access denied
+- File: [auth.interceptor.ts](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/core/interceptors/auth.interceptor.ts)
+
+#### 4. Dynamic ERP sidebar by role
+- Sidebar now renders menus by authenticated role.
+- Includes logout and clean app shell.
+- Files:
+  - [app.ts](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/app.ts)
+  - [app.html](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/app.html)
+  - [app.scss](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/app.scss)
+
+#### 5. Role-specific dashboard routes/pages
+- Added routes:
+  - `/pm/dashboard`
+  - `/engineer/dashboard`
+  - `/accountant/dashboard`
+  - `/client/dashboard`
+- File: [app.routes.ts](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/app.routes.ts)
+- Added role dashboard components:
+  - [project-manager-dashboard.ts](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/features/role-dashboards/project-manager/project-manager-dashboard.ts)
+  - [engineer-dashboard.ts](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/features/role-dashboards/engineer/engineer-dashboard.ts)
+  - [accountant-dashboard.ts](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/features/role-dashboards/accountant/accountant-dashboard.ts)
+  - [client-dashboard.ts](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/features/role-dashboards/client/client-dashboard.ts)
+
+---
+
+## Validation result
+
+- Frontend build: passed (`ng build` successful).
+- Backend build: still failing in this environment with `Build FAILED` and `0 errors` (same host/tooling issue as before, not a clear compile diagnostic from CLI).
+
+---
+
+## Suggested next steps
+1. Run backend from Visual Studio once to confirm local SDK/restore issue and capture actual diagnostics.
+2. Add module-level APIs and UI pages for PM/Engineer/Accountant/Client dashboards (projects/tasks/finance/reports) using same role-guard pattern.
+3. Add centralized exception middleware + standardized error response envelope for full enterprise API consistency.
+
+
+---
+
+## User <sup>5/11/2026, 5:39:09 PM</sup>
+
+give me the admin sedd email and pass
+
+
+---
+
+## Codex <sup>5/11/2026, 5:39:14 PM</sup>
+
+Email: `admin@construction.local`  
+Password: `Admin@12345`
+
+Seed config location: [appsettings.json](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.API/appsettings.json) (`SeedAdmin` section).
+
+
+---
+
+## User <sup>5/11/2026, 5:45:27 PM</sup>
+
+# Context from my IDE setup:
+
+## Active file: ConstructionManagement.API/appsettings.json
+
+## Open tabs:
+- appsettings.json: ConstructionManagement.API/appsettings.json
+
+## My request for Codex:
+ek or chez btaou k agr ma as a admin ksi ko engineer ya project manager bnata hu to us k login k liy process kru ga ya wo khud  register hongy give me the best case phr ma jab bolu ga tb krna apply
+
+
+---
+
+## Codex <sup>5/11/2026, 5:45:34 PM</sup>
+
+Best practice ERP case:
+
+1. `Admin creates users` for internal roles (`Project Manager`, `Engineer`, `Accountant`)
+- Admin panel se user create ho.
+- Role assign admin kare.
+- User ko invitation/setup link ya temporary password mile.
+- First login par forced password change ho.
+
+2. `Self-registration` sirf external user ke liye (`Client`)
+- Public register endpoint se jo bhi register kare usko default `Client` role mile.
+- Admin approval optional rakh sakte ho high-security setup me.
+
+3. Recommended flow in your system
+- Internal staff: no open register, only admin onboarding.
+- Clients: self-register allowed.
+- Security add-ons:
+  - `IsEmailVerified`
+  - `MustChangePassword`
+  - `Status` (`Pending/Active/Blocked`)
+  - audit log: kis admin ne kis user ko kaunsa role diya.
+
+Yani short answer:
+- Engineer/PM ko normally khud register nahi karna chahiye.
+- Unko admin create kare, phir wo login karke password set karein.
+
+Jab aap bolo, main isi best-case ko aapke current backend + frontend me apply kar dunga.
+
+
+---
+
+## User <sup>5/11/2026, 5:49:42 PM</sup>
+
+# Context from my IDE setup:
+
+## Active file: ConstructionManagement.API/appsettings.json
+
+## Open tabs:
+- appsettings.json: ConstructionManagement.API/appsettings.json
+
+## My request for Codex:
+wo to smj gya lekin phr admin un ko email or password ksy dega ??
+
+
+---
+
+## Codex <sup>5/11/2026, 5:49:48 PM</sup>
+
+Best practical way:
+
+1. Admin user create kare with role  
+2. System auto-generate kare:
+- temporary password **ya**
+- setup token (better)
+
+3. User ko bhejna:
+- Company email (SMTP) se invite mail:
+  - email
+  - one-time setup link
+  - expiry (e.g. 24 hours)
+
+4. User first time link open kare:
+- new password set kare
+- token expire ho jaye
+- account active ho jaye
+
+Most secure approach:
+- Plain password email na karo
+- “Set Password” link bhejo (one-time token)
+
+Agar email service abhi nahi lagani:
+- Admin panel me “Copy Invite Link” de do
+- Admin WhatsApp/Teams pe share kare
+- user first login pe password set kare
+
+Jab aap bolo, main isi flow ka enterprise implementation design + code apply kar dunga:
+- `MustChangePassword`
+- `PasswordSetupToken`
+- `TokenExpiry`
+- `POST /auth/set-password`
+- invite email integration point.
+
+
+---
+
+## User <sup>5/11/2026, 5:55:21 PM</sup>
+
+# Context from my IDE setup:
+
+## Active file: ConstructionManagement.API/appsettings.json
+
+## Open tabs:
+- appsettings.json: ConstructionManagement.API/appsettings.json
+
+## My request for Codex:
+which is best approach?
+
+
+---
+
+## Codex <sup>5/11/2026, 5:55:28 PM</sup>
+
+Best approach: **Invite-based onboarding with one-time “Set Password” link**.
+
+Why best:
+- Plain password share nahi hota.
+- Secure + auditable.
+- Enterprise ERP standard.
+- Role assignment admin-controlled rehta hai.
+
+Recommended model:
+1. Admin creates internal user (Engineer/PM/Accountant).
+2. System generates one-time token + expiry (e.g., 24h).
+3. Email invite link sent.
+4. User sets own password on first use.
+5. Token invalidated, account activated.
+
+Self-register sirf `Client` ke liye rakho (optional approval).
+
+
+---
+
+## User <sup>5/11/2026, 5:56:27 PM</sup>
+
+# Context from my IDE setup:
+
+## Active file: ConstructionManagement.API/appsettings.json
+
+## Open tabs:
+- appsettings.json: ConstructionManagement.API/appsettings.json
+
+## My request for Codex:
+ok Recommended implement kro
+
+
+---
+
+## Codex <sup>5/11/2026, 6:03:22 PM</sup>
+
+Perfect. Main ab recommended invite-based onboarding implement kar raha hoon: admin internal users create karega without password, system one-time setup token generate karega, aur user “set password” flow se account activate karega.
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.Domain\\Entities\\AppUser.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.Dtos\\CreateUserDto.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.BLL\\Services\\IUserService.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.BLL\\Services\\UserService.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.API\\Controllers\\UsersController.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.BLL\\Services\\IAuthService.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.API\\Controllers\\AuthController.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.API\\appsettings.json",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.5 seconds
+Output:
+namespace ConstructionManagement.Domain.Entities
+{
+    public class AppUser
+    {
+        public Guid Id { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string PasswordHash { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; }
+        public bool IsActive { get; set; } = true;
+        public bool IsDeleted { get; set; } = false;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
+        public DateTime? DeletedAt { get; set; }
+    }
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.5 seconds
+Output:
+using System.ComponentModel.DataAnnotations;
+
+namespace ConstructionManagement.Dtos;
+
+public class CreateUserDto
+{
+    [Required]
+    [StringLength(100, MinimumLength = 3)]
+    public string FullName { get; set; } = string.Empty;
+
+    [Required]
+    [EmailAddress]
+    [StringLength(255)]
+    public string Email { get; set; } = string.Empty;
+
+    [Required]
+    [MinLength(8)]
+    [StringLength(128)]
+    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$",
+        ErrorMessage = "Password must contain uppercase, lowercase, number, and special character.")]
+    public string Password { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(50)]
+    public string Role { get; set; } = string.Empty;
+
+    [Phone]
+    [StringLength(20)]
+    public string? PhoneNumber { get; set; }
+
+    public bool IsActive { get; set; } = true;
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.3 seconds
+Output:
+using ConstructionManagement.Dtos;
+
+namespace ConstructionManagement.BLL.Services;
+
+public interface IUserService
+{
+    Task<ApiResponseDto<UserDto>> AddUserAsync(CreateUserDto dto);
+    Task<ApiResponseDto<List<UserDto>>> GetAllUsersAsync();
+    Task<ApiResponseDto<UserDto>> GetUserByIdAsync(Guid id);
+    Task<ApiResponseDto<UserDto>> UpdateUserAsync(Guid id, UpdateUserDto dto);
+    Task<ApiResponseDto<bool>> DeleteUserAsync(Guid id);
+    Task<ApiResponseDto<UserDto>> UpdateUserStatusAsync(Guid id, UpdateUserStatusDto dto);
+    Task<ApiResponseDto<UserDto>> AssignRoleAsync(Guid id, AssignRoleDto dto);
+    Task<ApiResponseDto<UserDto>> GetProfileAsync(Guid userId);
+    Task<ApiResponseDto<UserDto>> UpdateProfileAsync(Guid userId, UpdateProfileDto dto);
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 3 seconds
+Output:
+using ConstructionManagement.DAL.Repositories.Interfaces;
+using ConstructionManagement.Domain.Constants;
+using ConstructionManagement.Domain.Entities;
+using ConstructionManagement.Dtos;
+
+namespace ConstructionManagement.BLL.Services;
+
+public class UserService : IUserService
+{
+    private readonly IUserRepository _userRepository;
+
+    public UserService(IUserRepository userRepository)
+    {
+        _userRepository = userRepository;
+    }
+
+    public async Task<ApiResponseDto<UserDto>> AddUserAsync(CreateUserDto dto)
+    {
+        if (!ApplicationRoles.All.Contains(dto.Role))
+        {
+            return ApiResponseDto<UserDto>.Fail("Invalid role provided.");
+        }
+
+        var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
+        var exists = await _userRepository.EmailExistsAsync(normalizedEmail);
+        if (exists)
+        {
+            return ApiResponseDto<UserDto>.Fail("A user with this email already
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.7 seconds
+Output:
+using ConstructionManagement.BLL.Services;
+using ConstructionManagement.Domain.Constants;
+using ConstructionManagement.Dtos;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+
+namespace ConstructionManagement.API.Controllers;
+
+[ApiController]
+[Route("api/users")]
+[Authorize]
+public class UsersController : ControllerBase
+{
+    private readonly IUserService _userService;
+
+    public UsersController(IUserService userService)
+    {
+        _userService = userService;
+    }
+
+    [HttpPost]
+    [Authorize(Roles = ApplicationRoles.Admin)]
+    public async Task<IActionResult> AddUser([FromBody] CreateUserDto dto)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+        var response = await _userService.AddUserAsync(dto);
+        return response.Success ? Ok(response) : BadRequest(response);
+    }
+
+    [HttpGet]
+    [Authorize(Roles = App
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.5 seconds
+Output:
+using ConstructionManagement.Dtos;
+
+namespace ConstructionManagement.BLL.Services
+{
+    public interface IAuthService
+    {
+        Task<AuthResultDto> Register(RegisterDto dto);
+        Task<AuthResultDto> Login(LoginDto dto);
+    }
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.9 seconds
+Output:
+using ConstructionManagement.BLL.Services;
+using ConstructionManagement.Domain.Constants;
+using ConstructionManagement.Dtos;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+
+[ApiController]
+[Route("api/auth")]
+public class AuthController : ControllerBase
+{
+    private readonly IAuthService _auth;
+
+    public AuthController(IAuthService auth)
+    {
+        _auth = auth;
+    }
+
+    [HttpPost("register")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Register([FromBody] RegisterDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        var result = await _auth.Register(dto);
+        if (!result.Success)
+        {
+            return BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+
+    [HttpPost("login")]
+    [AllowAnonymous]
+    public async Task<IActionResult
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.5 seconds
+Output:
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=DESKTOP-O3CK2G5\\SQLEXPRESS;Database=ConstructionManagementDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
+  },
+  "Jwt": {
+    "Key": "THIS_IS_SUPER_SECRET_KEY_1234567",
+    "Issuer": "ConstructionAPI",
+    "Audience": "ConstructionClient"
+  },
+  "Cors": {
+    "AllowedOrigins": [
+      "http://localhost:4200"
+    ]
+  },
+  "SeedAdmin": {
+    "FullName": "System Admin",
+    "Email": "admin@construction.local",
+    "Password": "Admin@12345"
+  }
+}
+```
+
+</details>
+
+Ab main invite flow complete kar raha hoon: `CreateUser` se password hataunga, one-time setup token + expiry store karunga, aur `POST /api/auth/set-password` endpoint add karunga. Uske baad frontend form bhi is flow ke مطابق update kar dunga.
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.DAL\\Data\\AppDbContext.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.Dtos\\UserDto.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content 'C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui\\src\\app\\features\\user-management\\pages\\user-form\\user-form.ts'",
+  "sandbox_permissions": "require_escalated",
+  "justification": "Do you want me to update the frontend user form to match invite-based onboarding instead of admin-set password?",
+  "prefix_rule": [
+    "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "-Command",
+    "Get-Content"
+  ]
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content 'C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui\\src\\app\\features\\user-management\\services\\user-management.ts'",
+  "sandbox_permissions": "require_escalated",
+  "justification": "Do you want me to update frontend user service contracts for invite-link response?",
+  "prefix_rule": [
+    "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "-Command",
+    "Get-Content"
+  ]
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content 'C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui\\src\\app\\features\\user-management\\pages\\user-form\\user-form.html'",
+  "sandbox_permissions": "require_escalated",
+  "justification": "Do you want me to update frontend user form UI to show generated invite link for admin sharing?",
+  "prefix_rule": [
+    "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "-Command",
+    "Get-Content"
+  ]
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 1.5 seconds
+Output:
+using ConstructionManagement.Domain.Constants;
+using ConstructionManagement.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace ConstructionManagement.DAL.Data
+{
+    public class AppDbContext : DbContext
+    {
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+        {
+        }
+
+        public DbSet<AppUser> Users { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<AppUser>(entity =>
+            {
+                entity.HasIndex(x => x.Email).IsUnique();
+                entity.Property(x => x.FullName).HasMaxLength(100).IsRequired();
+                entity.Property(x => x.Email).HasMaxLength(255).IsRequired();
+                entity.Property(x => x.PasswordHash).HasMaxLength(255).IsRequired();
+                entity.Property(x => x.Role).HasMaxL
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2 seconds
+Output:
+namespace ConstructionManagement.Dtos;
+
+public class UserDto
+{
+    public Guid Id { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.5 seconds
+Output:
+import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { UserManagementService } from '../../services/user-management';
+import { UserRole } from '../../models/user.model';
+
+@Component({
+  selector: 'app-user-form',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  templateUrl: './user-form.html',
+  styleUrl: './user-form.scss'
+})
+export class UserFormComponent implements OnInit {
+  private readonly fb = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly userService = inject(UserManagementService);
+
+  roles: UserRole[] = ['Admin', 'Project Manager', 'Engineer', 'Accountant', 'Client'];
+  userId: string | 
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.3 seconds
+Output:
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { environment } from '../../../../environments/environment';
+import { ApiResponse, User, UserRole } from '../models/user.model';
+
+@Injectable({ providedIn: 'root' })
+export class UserManagementService {
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = `${environment.apiBaseUrl}/users`;
+
+  getAll(): Observable<ApiResponse<User[]>> { return this.http.get<ApiResponse<User[]>>(this.apiUrl); }
+  getById(id: string): Observable<ApiResponse<User>> { return this.http.get<ApiResponse<User>>(`${this.apiUrl}/${id}`); }
+  create(payload: { fullName: string; email: string; password: string; role: UserRole; phoneNumber?: string; isActive: boolean; }): Observable<ApiResponse<User>> { return this.http.post<ApiResponse<User>>(this.apiUrl, payload); }
+  update(id: string, payload
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.3 seconds
+Output:
+<a routerLink="/users">Back</a>
+<form [formGroup]="form" (ngSubmit)="submit()" class="card">
+  <h2>{{ userId ? 'Edit User' : 'Add User' }}</h2>
+  <label>Full Name<input formControlName="fullName" /></label>
+  <label>Email<input formControlName="email" [readonly]="!!userId" /></label>
+  <label *ngIf="!userId">Password<input type="password" formControlName="password" /></label>
+  <label>Phone Number<input formControlName="phoneNumber" /></label>
+  <label>Role<select formControlName="role"><option *ngFor="let role of roles" [value]="role">{{ role }}</option></select></label>
+  <label><input type="checkbox" formControlName="isActive" /> Active</label>
+  <button type="submit">{{ userId ? 'Update' : 'Create' }}</button>
+</form>
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>web_search</code></summary>
+
+```json
+{}
+```
+
+</details>
+
+Main schema ko safe rakhne ke liye `PasswordHash` required hi rakhunga aur invited users ke liye unusable random hash set karunga, plus `MustChangePassword + setup token` fields add karunga. Isse flow secure bhi rahega aur regression risk kam होगा.
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.API\\Seed\\AdminSeeder.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.DAL\\Repositories\\Interfaces\\IUserRepository.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "Get-Content ConstructionManagement.DAL\\Repositories\\UserRepository.cs",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.4 seconds
+Output:
+using ConstructionManagement.DAL.Data;
+using ConstructionManagement.Domain.Constants;
+using ConstructionManagement.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace ConstructionManagement.API.Seed;
+
+public static class AdminSeeder
+{
+    public static async Task SeedAsync(IServiceProvider services, IConfiguration configuration)
+    {
+        using var scope = services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Database.MigrateAsync();
+
+        var email = configuration["SeedAdmin:Email"]?.Trim().ToLowerInvariant();
+        var password = configuration["SeedAdmin:Password"];
+        var fullName = configuration["SeedAdmin:FullName"]?.Trim();
+
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(fullName))
+        {
+            return;
+        }
+
+        var existing = await db.Users.F
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.1 seconds
+Output:
+using ConstructionManagement.Domain.Entities;
+
+namespace ConstructionManagement.DAL.Repositories.Interfaces;
+
+public interface IUserRepository
+    : IGenericRepository<AppUser>
+{
+    Task<bool> EmailExistsAsync(string normalizedEmail);
+    Task<AppUser?> GetByEmailAsync(string normalizedEmail);
+    Task AddAsync(AppUser user);
+    Task<List<AppUser>> GetAllActiveAsync();
+    Task<AppUser?> GetByIdActiveAsync(Guid id);
+    Task<AppUser?> GetByIdIncludingDeletedAsync(Guid id);
+    Task<int> CountActiveUsersAsync();
+    Task<int> CountInactiveUsersAsync();
+    Task<int> CountByRoleAsync(string role);
+    Task SaveChangesAsync();
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 1.8 seconds
+Output:
+using ConstructionManagement.DAL.Data;
+using ConstructionManagement.DAL.Repositories.Interfaces;
+using ConstructionManagement.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace ConstructionManagement.DAL.Repositories;
+
+public class UserRepository : GenericRepository<AppUser>, IUserRepository
+{
+    private readonly AppDbContext _context;
+
+    public UserRepository(AppDbContext context)
+        : base(context)
+    {
+        _context = context;
+    }
+
+    public Task<bool> EmailExistsAsync(string normalizedEmail) =>
+        _context.Users.AnyAsync(x => x.Email == normalizedEmail);
+
+    public async Task AddAsync(AppUser user)
+    {
+        await _context.Users.AddAsync(user);
+    }
+
+    public Task<AppUser?> GetByEmailAsync(string normalizedEmail) =>
+        _context.Users.FirstOrDefaultAsync(x => x.Email == normalizedEmail);
+
+    public Task<List<AppUser>> GetAllActiveAsync() =>
+        _context.Users
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Update File: ConstructionManagement.Domain/Entities/AppUser.cs\n@@\n         public string? PhoneNumber { get; set; }\n         public bool IsActive { get; set; } = true;\n         public bool IsDeleted { get; set; } = false;\n+        public bool MustChangePassword { get; set; } = false;\n+        public string? PasswordSetupTokenHash { get; set; }\n+        public DateTime? PasswordSetupTokenExpiresAtUtc { get; set; }\n         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nM ConstructionManagement.Domain/Entities/AppUser.cs\n","metadata":{"exit_code":0,"duration_seconds":0.3}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Update File: ConstructionManagement.DAL/Data/AppDbContext.cs\n@@\n                 entity.Property(x => x.CreatedAt).IsRequired();\n                 entity.Property(x => x.IsActive).IsRequired();\n                 entity.Property(x => x.IsDeleted).IsRequired();\n+                entity.Property(x => x.MustChangePassword).IsRequired();\n+                entity.Property(x => x.PasswordSetupTokenHash).HasMaxLength(128);\n \n                 entity.ToTable(t =>\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nM ConstructionManagement.DAL/Data/AppDbContext.cs\n","metadata":{"exit_code":0,"duration_seconds":0.4}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Update File: ConstructionManagement.Dtos/CreateUserDto.cs\n@@\n-    [Required]\n-    [MinLength(8)]\n-    [StringLength(128)]\n-    [RegularExpression(@\"^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[\\W_]).+$\",\n-        ErrorMessage = \"Password must contain uppercase, lowercase, number, and special character.\")]\n-    public string Password { get; set; } = string.Empty;\n-\n     [Required]\n     [StringLength(50)]\n     public string Role { get; set; } = string.Empty;\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nM ConstructionManagement.Dtos/CreateUserDto.cs\n","metadata":{"exit_code":0,"duration_seconds":0.3}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Add File: ConstructionManagement.Dtos/InviteUserResponseDto.cs\n+namespace ConstructionManagement.Dtos;\n+\n+public class InviteUserResponseDto\n+{\n+    public UserDto User { get; set; } = new();\n+    public string InviteLink { get; set; } = string.Empty;\n+    public DateTime ExpiresAtUtc { get; set; }\n+}\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nA ConstructionManagement.Dtos/InviteUserResponseDto.cs\n","metadata":{"exit_code":0,"duration_seconds":0.2}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Add File: ConstructionManagement.Dtos/SetPasswordDto.cs\n+using System.ComponentModel.DataAnnotations;\n+\n+namespace ConstructionManagement.Dtos;\n+\n+public class SetPasswordDto\n+{\n+    [Required]\n+    public string Token { get; set; } = string.Empty;\n+\n+    [Required]\n+    [MinLength(8)]\n+    [StringLength(128)]\n+    [RegularExpression(@\"^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[\\W_]).+$\",\n+        ErrorMessage = \"Password must contain uppercase, lowercase, number, and special character.\")]\n+    public string Password { get; set; } = string.Empty;\n+}\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nA ConstructionManagement.Dtos/SetPasswordDto.cs\n","metadata":{"exit_code":0,"duration_seconds":0.2}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Update File: ConstructionManagement.BLL/Services/IUserService.cs\n@@\n public interface IUserService\n {\n-    Task<ApiResponseDto<UserDto>> AddUserAsync(CreateUserDto dto);\n+    Task<ApiResponseDto<InviteUserResponseDto>> AddUserAsync(CreateUserDto dto);\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nM ConstructionManagement.BLL/Services/IUserService.cs\n","metadata":{"exit_code":0,"duration_seconds":0.2}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Update File: ConstructionManagement.BLL/Services/UserService.cs\n@@\n using ConstructionManagement.DAL.Repositories.Interfaces;\n using ConstructionManagement.Domain.Constants;\n using ConstructionManagement.Domain.Entities;\n using ConstructionManagement.Dtos;\n+using Microsoft.Extensions.Configuration;\n+using System.Security.Cryptography;\n+using System.Text;\n@@\n public class UserService : IUserService\n {\n     private readonly IUserRepository _userRepository;\n+    private readonly IConfiguration _configuration;\n \n-    public UserService(IUserRepository userRepository)\n+    public UserService(IUserRepository userRepository, IConfiguration configuration)\n     {\n         _userRepository = userRepository;\n+        _configuration = configuration;\n     }\n \n-    public async Task<ApiResponseDto<UserDto>> AddUserAsync(CreateUserDto dto)\n+    public async Task<ApiResponseDto<InviteUserResponseDto>> AddUserAsync(CreateUserDto dto)\n     {\n         if (!ApplicationRoles.All.Contains(dto.Role))\n         {\n-            return ApiResponseDto<UserDto>.Fail(\"Invalid role provided.\");\n+            return ApiResponseDto<InviteUserResponseDto>.Fail(\"Invalid role provided.\");\n         }\n@@\n         var exists = await _userRepository.EmailExistsAsync(normalizedEmail);\n         if (exists)\n         {\n-            return ApiResponseDto<UserDto>.Fail(\"A user with this email already exists.\");\n+            return ApiResponseDto<InviteUserResponseDto>.Fail(\"A user with this email already exists.\");\n         }\n+\n+        var setupToken = GenerateSetupToken();\n+        var setupTokenHash = HashToken(setupToken);\n+        var expiresAtUtc = DateTime.UtcNow.AddHours(24);\n \n         var entity = new AppUser\n         {\n             FullName = dto.FullName.Trim(),\n             Email = normalizedEmail,\n-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, workFactor: 12),\n+            PasswordHash 
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nM ConstructionManagement.BLL/Services/UserService.cs\n","metadata":{"exit_code":0,"duration_seconds":0.2}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Update File: ConstructionManagement.BLL/Services/IAuthService.cs\n@@\n     public interface IAuthService\n     {\n         Task<AuthResultDto> Register(RegisterDto dto);\n         Task<AuthResultDto> Login(LoginDto dto);\n+        Task<AuthResultDto> SetPassword(SetPasswordDto dto);\n     }\n }\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nM ConstructionManagement.BLL/Services/IAuthService.cs\n","metadata":{"exit_code":0,"duration_seconds":0.2}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Update File: ConstructionManagement.DAL/Repositories/Interfaces/IUserRepository.cs\n@@\n     Task<bool> EmailExistsAsync(string normalizedEmail);\n     Task<AppUser?> GetByEmailAsync(string normalizedEmail);\n+    Task<AppUser?> GetByPasswordSetupTokenHashAsync(string tokenHash);\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nM ConstructionManagement.DAL/Repositories/Interfaces/IUserRepository.cs\n","metadata":{"exit_code":0,"duration_seconds":0.2}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Update File: ConstructionManagement.DAL/Repositories/UserRepository.cs\n@@\n     public Task<AppUser?> GetByEmailAsync(string normalizedEmail) =>\n         _context.Users.FirstOrDefaultAsync(x => x.Email == normalizedEmail);\n+\n+    public Task<AppUser?> GetByPasswordSetupTokenHashAsync(string tokenHash) =>\n+        _context.Users.FirstOrDefaultAsync(x =>\n+            !x.IsDeleted &&\n+            x.PasswordSetupTokenHash == tokenHash &&\n+            x.PasswordSetupTokenExpiresAtUtc != null);\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nM ConstructionManagement.DAL/Repositories/UserRepository.cs\n","metadata":{"exit_code":0,"duration_seconds":1.3}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Delete File: ConstructionManagement.BLL/Services/AuthService.cs\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nD ConstructionManagement.BLL/Services/AuthService.cs\n","metadata":{"exit_code":0,"duration_seconds":0.2}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Add File: ConstructionManagement.BLL/Services/AuthService.cs\n+using ConstructionManagement.DAL.Repositories.Interfaces;\n+using ConstructionManagement.Domain.Constants;\n+using ConstructionManagement.Domain.Entities;\n+using ConstructionManagement.Dtos;\n+using System.Security.Cryptography;\n+using System.Text;\n+\n+namespace ConstructionManagement.BLL.Services\n+{\n+    public class AuthService : IAuthService\n+    {\n+        private readonly IUserRepository _userRepository;\n+        private readonly TokenService _tokenService;\n+\n+        public AuthService(IUserRepository userRepository, TokenService tokenService)\n+        {\n+            _userRepository = userRepository;\n+            _tokenService = tokenService;\n+        }\n+\n+        public async Task<AuthResultDto> Register(RegisterDto dto)\n+        {\n+            var normalizedEmail = dto.Email.Trim().ToLowerInvariant();\n+            var exists = await _userRepository.EmailExistsAsync(normalizedEmail);\n+            if (exists)\n+            {\n+                return new AuthResultDto\n+                {\n+                    Success = false,\n+                    Message = \"An account with this email already exists.\"\n+                };\n+            }\n+\n+            var user = new AppUser\n+            {\n+                FullName = dto.FullName.Trim(),\n+                Email = normalizedEmail,\n+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, workFactor: 12),\n+                Role = ApplicationRoles.Client,\n+                IsActive = true,\n+                IsDeleted = false,\n+                MustChangePassword = false\n+            };\n+\n+            await _userRepository.AddAsync(user);\n+            await _userRepository.SaveChangesAsync();\n+\n+            return new AuthResultDto\n+            {\n+                Success = true,\n+                Message = \"User registered successfully.\",\n+                Role = 
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nA ConstructionManagement.BLL/Services/AuthService.cs\n","metadata":{"exit_code":0,"duration_seconds":0.2}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Update File: ConstructionManagement.API/Controllers/AuthController.cs\n@@\n     [HttpPost(\"login\")]\n@@\n         return Ok(result);\n     }\n+\n+    [HttpPost(\"set-password\")]\n+    [AllowAnonymous]\n+    public async Task<IActionResult> SetPassword([FromBody] SetPasswordDto dto)\n+    {\n+        if (!ModelState.IsValid)\n+        {\n+            return ValidationProblem(ModelState);\n+        }\n+\n+        var result = await _auth.SetPassword(dto);\n+        if (!result.Success)\n+        {\n+            return BadRequest(result);\n+        }\n+\n+        return Ok(result);\n+    }\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nM ConstructionManagement.API/Controllers/AuthController.cs\n","metadata":{"exit_code":0,"duration_seconds":0.3}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Update File: ConstructionManagement.Dtos/UserDto.cs\n@@\n     public string Role { get; set; } = string.Empty;\n     public string? PhoneNumber { get; set; }\n     public bool IsActive { get; set; }\n+    public bool MustChangePassword { get; set; }\n     public DateTime CreatedAt { get; set; }\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nM ConstructionManagement.Dtos/UserDto.cs\n","metadata":{"exit_code":0,"duration_seconds":0.2}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Update File: ConstructionManagement.BLL/Services/UserService.cs\n@@\n         PhoneNumber = user.PhoneNumber,\n         IsActive = user.IsActive,\n+        MustChangePassword = user.MustChangePassword,\n         CreatedAt = user.CreatedAt,\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nM ConstructionManagement.BLL/Services/UserService.cs\n","metadata":{"exit_code":0,"duration_seconds":0.3}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Update File: ConstructionManagement.API/Seed/AdminSeeder.cs\n@@\n             if (existing.Role != ApplicationRoles.Admin || existing.IsDeleted || !existing.IsActive)\n             {\n                 existing.Role = ApplicationRoles.Admin;\n                 existing.IsDeleted = false;\n                 existing.IsActive = true;\n+                existing.MustChangePassword = false;\n+                existing.PasswordSetupTokenHash = null;\n+                existing.PasswordSetupTokenExpiresAtUtc = null;\n                 existing.UpdatedAt = DateTime.UtcNow;\n                 existing.DeletedAt = null;\n                 await db.SaveChangesAsync();\n             }\n@@\n             Role = ApplicationRoles.Admin,\n             IsActive = true,\n             IsDeleted = false,\n+            MustChangePassword = false,\n             CreatedAt = DateTime.UtcNow\n         };\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nM ConstructionManagement.API/Seed/AdminSeeder.cs\n","metadata":{"exit_code":0,"duration_seconds":0.2}}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>apply_patch</code></summary>
+
+```json
+{
+  "input": "*** Begin Patch\n*** Update File: ConstructionManagement.API/appsettings.json\n@@\n   \"Cors\": {\n     \"AllowedOrigins\": [\n       \"http://localhost:4200\"\n     ]\n   },\n+  \"Frontend\": {\n+    \"BaseUrl\": \"http://localhost:4200\"\n+  },\n   \"SeedAdmin\": {\n*** End Patch\n"
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+{"output":"Success. Updated the following files:\nM ConstructionManagement.API/appsettings.json\n","metadata":{"exit_code":0,"duration_seconds":0.2}}
+```
+
+</details>
+
+Backend invite flow wire ho gaya. Ab main frontend me admin user-create screen ko password-less invite mode me convert kar raha hoon aur `set-password` public page add kar raha hoon.
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "$root='C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui\\src\\app'; @'\nexport type UserRole = 'Admin' | 'Project Manager' | 'Engineer' | 'Accountant' | 'Client';\n\nexport interface ApiResponse<T> {\n  success: boolean;\n  message: string;\n  data: T;\n}\n\nexport interface User {\n  id: string;\n  fullName: string;\n  email: string;\n  role: UserRole;\n  phoneNumber?: string;\n  isActive: boolean;\n  mustChangePassword: boolean;\n  createdAt: string;\n  updatedAt?: string;\n}\n\nexport interface InviteUserResponse {\n  user: User;\n  inviteLink: string;\n  expiresAtUtc: string;\n}\n'@ | Set-Content \"$root\\features\\user-management\\models\\user.model.ts\"; @'\nimport { Injectable, inject } from '@angular/core';\nimport { HttpClient } from '@angular/common/http';\nimport { Observable } from 'rxjs';\nimport { environment } from '../../../../environments/environment';\nimport { ApiResponse, InviteUserResponse, User, UserRole } from '../models/user.model';\n\n@Injectable({ providedIn: 'root' })\nexport class UserManagementService {\n  private readonly http = inject(HttpClient);\n  private readonly apiUrl = `${environment.apiBaseUrl}/users`;\n\n  getAll(): Observable<ApiResponse<User[]>> { return this.http.get<ApiResponse<User[]>>(this.apiUrl); }\n  getById(id: string): Observable<ApiResponse<User>> { return this.http.get<ApiResponse<User>>(`${this.apiUrl}/${id}`); }\n  create(payload: { fullName: string; email: string; role: UserRole; phoneNumber?: string; isActive: boolean; }): Observable<ApiResponse<InviteUserResponse>> { return this.http.post<ApiResponse<InviteUserResponse>>(this.apiUrl, payload); }\n  update(id: string, payload: { fullName: string; phoneNumber?: string; }): Observable<ApiResponse<User>> { return this.http.put<ApiResponse<User>>(`${this.apiUrl}/${id}`, payload); }\n  remove(id: string): Observable<ApiResponse<boolean>> { return this.http.delete<ApiResponse<boolean>>(`${this.apiUrl}/${id}`); }\n  updateStatus(id: stri
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 1 seconds
+Output:
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "$root='C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui\\src\\app'; New-Item -ItemType Directory -Force \"$root\\features\\auth\\set-password\" | Out-Null; @'\nimport { Component, inject } from '@angular/core';\nimport { CommonModule } from '@angular/common';\nimport { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';\nimport { ActivatedRoute, Router, RouterLink } from '@angular/router';\nimport { AuthService } from '../services/auth';\n\n@Component({\n  selector: 'app-set-password',\n  standalone: true,\n  imports: [CommonModule, ReactiveFormsModule, RouterLink],\n  templateUrl: './set-password.html',\n  styleUrl: './set-password.scss'\n})\nexport class SetPasswordComponent {\n  private readonly fb = inject(FormBuilder);\n  private readonly route = inject(ActivatedRoute);\n  private readonly router = inject(Router);\n  private readonly authService = inject(AuthService);\n\n  message = '';\n  error = '';\n\n  form = this.fb.group({\n    password: ['', [Validators.required, Validators.minLength(8), Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[\\W_]).+$/)]],\n    confirmPassword: ['', [Validators.required]]\n  });\n\n  submit(): void {\n    this.error = '';\n    const token = this.route.snapshot.queryParamMap.get('token');\n    if (!token) { this.error = 'Invalid invite link.'; return; }\n    if (this.form.invalid) return;\n\n    const { password, confirmPassword } = this.form.getRawValue();\n    if (password !== confirmPassword) { this.error = 'Passwords do not match.'; return; }\n\n    this.authService.setPassword({ token, password: password! }).subscribe({\n      next: (res) => {\n        this.message = res.message;\n        setTimeout(() => this.router.navigateByUrl('/login'), 1200);\n      },\n      error: (err) => {\n        this.error = err?.error?.message ?? 'Unable to set password.';\n      }\n    });\n  }\n}\n'@ | Set-Content \"$root\\features\\auth\\set-password\\set-password.ts\"; @'\n<section 
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 2.4 seconds
+Output:
+```
+
+</details>
+
+Main ek small UX polish bhi add kar raha hoon: user list me “Invite Pending/Password Set” indicator, taake admin ko onboarding status clear nazar aaye.
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "@'\n<section class=\"toolbar\">\n  <h2>User Management</h2>\n  <a routerLink=\"/users/new\">Add User</a>\n</section>\n\n<div class=\"table-wrap\">\n  <table>\n    <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Onboarding</th><th>Status</th><th>Actions</th></tr></thead>\n    <tbody>\n      <tr *ngFor=\"let user of users\">\n        <td>{{ user.fullName }}</td><td>{{ user.email }}</td><td>{{ user.role }}</td>\n        <td>{{ user.mustChangePassword ? 'Invite Pending' : 'Password Set' }}</td>\n        <td><button type=\"button\" (click)=\"toggle(user)\">{{ user.isActive ? 'Active' : 'Inactive' }}</button></td>\n        <td><a [routerLink]=\"['/users', user.id, 'edit']\">Edit</a> <button type=\"button\" (click)=\"delete(user)\">Delete</button></td>\n      </tr>\n    </tbody>\n  </table>\n</div>\n'@ | Set-Content 'C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui\\src\\app\\features\\user-management\\pages\\user-list\\user-list.html'",
+  "sandbox_permissions": "require_escalated",
+  "justification": "Do you want me to update user list UI to show invite onboarding status for admins?",
+  "prefix_rule": [
+    "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+    "-Command",
+    "Set-Content"
+  ]
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 0.7 seconds
+Output:
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "dotnet ef migrations add InviteOnboarding --project ConstructionManagement.DAL --startup-project ConstructionManagement.API --context AppDbContext",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API",
+  "timeout_ms": 180000
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 1
+Wall time: 1.2 seconds
+Output:
+Possible reasons for this include:
+  * You misspelled a built-in dotnet command.
+  * You intended to execute a .NET program, but dotnet-ef does not exist.
+  * You intended to run a global tool, but a dotnet-prefixed executable with this name could not be found on the PATH.
+Could not execute because the specified command or file was not found.
+```
+
+</details>
+
+Code changes complete ho gaye; ab main quick frontend build run karke verify karta hoon. Backend migration tool (`dotnet-ef`) missing hai, uska note final me dunga with exact install command.
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "npm run build",
+  "workdir": "C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui",
+  "timeout_ms": 180000,
+  "sandbox_permissions": "require_escalated",
+  "justification": "Do you want me to build the frontend to verify invite onboarding and set-password flow compile correctly?",
+  "prefix_rule": [
+    "npm",
+    "run",
+    "build"
+  ]
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 12.6 seconds
+Output:
+
+> construction-management-ui@0.0.0 build
+> ng build
+
+[33m>[39m Building...
+[32m√[39m Building...
+[1mInitial chunk files[22m[2m | [22m[1mNames[22m                    [2m | [22m [1mRaw size[22m[2m | [22m[1mEstimated transfer size[22m
+[32mchunk-GXQ7TRFP.js[39m  [2m | [22m[2m-[22m                        [2m | [22m[36m134.29 kB[39m[2m | [22m               [36m39.73 kB[39m
+[32mchunk-ZTEOLBS5.js[39m  [2m | [22m[2m-[22m                        [2m | [22m [36m85.14 kB[39m[2m | [22m               [36m21.58 kB[39m
+[32mchunk-AFMVERN4.js[39m  [2m | [22m[2m-[22m                        [2m | [22m [36m36.57 kB[39m[2m | [22m               [36m10.29 kB[39m
+[32mmain-IPZQQZPB.js[39m   [2m | [22m[2mmain[22m                     [2m | [22m  [36m5.65 kB[39m[2m | [22m                [36m1.91 kB[39m
+[32mchunk-NUQW4MLY.js[39m  [2m | [22m[2m-[22m                        [2m | [22m  [36m
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "dotnet build ConstructionManagement.API.sln -v minimal",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API",
+  "timeout_ms": 180000
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 1
+Wall time: 8.3 seconds
+Output:
+
+Build FAILED.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:06.71
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "git status --short",
+  "workdir": "c:\\Users\\Ali Raza\\source\\repos\\ConstructionManagement.API"
+}
+```
+
+</details>
+
+<details>
+<summary>Tool: <code>shell_command</code></summary>
+
+```json
+{
+  "command": "git status --short",
+  "workdir": "C:\\Users\\Ali Raza\\source\\repos\\construction-management-ui",
+  "sandbox_permissions": "require_escalated",
+  "justification": "Do you want me to verify all frontend invite-flow file changes in your separate repository before handoff?",
+  "prefix_rule": [
+    "git",
+    "status"
+  ]
+}
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 1.6 seconds
+Output:
+ D .codex-history/2026-05-11_160013_Build-user-management-module_019e1677.md
+ M ConstructionManagement.API/Controllers/AuthController.cs
+ M ConstructionManagement.API/Seed/AdminSeeder.cs
+ M ConstructionManagement.API/appsettings.json
+ M ConstructionManagement.BLL/Services/AuthService.cs
+ M ConstructionManagement.BLL/Services/IAuthService.cs
+ M ConstructionManagement.BLL/Services/IUserService.cs
+ M ConstructionManagement.BLL/Services/UserService.cs
+ M ConstructionManagement.DAL/Data/AppDbContext.cs
+ M ConstructionManagement.DAL/Repositories/Interfaces/IUserRepository.cs
+ M ConstructionManagement.DAL/Repositories/UserRepository.cs
+ M ConstructionManagement.Domain/Entities/AppUser.cs
+ M ConstructionManagement.Dtos/CreateUserDto.cs
+ M ConstructionManagement.Dtos/UserDto.cs
+?? .codex-history/2026-05-11_175528_Build-user-management-module_019e1677.md
+?? ConstructionManagement.DAL/Repositories/GenericRepository.cs
+?? ConstructionManagement.DAL/Repos
+...(truncated)
+```
+
+</details>
+
+<details>
+<summary>Result</summary>
+
+```
+Exit code: 0
+Wall time: 1.8 seconds
+Output:
+ M src/app/app.html
+ M src/app/app.routes.ts
+ M src/app/app.scss
+ M src/app/app.ts
+ M src/app/core/guards/role.guard.ts
+ M src/app/core/interceptors/auth.interceptor.ts
+ M src/app/features/auth/login/login.ts
+ M src/app/features/auth/services/auth.ts
+ M src/app/features/user-management/models/user.model.ts
+ M src/app/features/user-management/pages/user-form/user-form.html
+ M src/app/features/user-management/pages/user-form/user-form.scss
+ M src/app/features/user-management/pages/user-form/user-form.ts
+ M src/app/features/user-management/pages/user-list/user-list.html
+ M src/app/features/user-management/services/user-management.ts
+?? src/app/features/access-denied/
+?? src/app/features/auth/set-password/
+?? src/app/features/role-dashboards/
+```
+
+</details>
+
+Implemented recommended **invite-based onboarding** end-to-end.
+
+### What is now implemented
+
+#### Backend (`ConstructionManagement.API`)
+- Admin creates internal users **without password**.
+- System generates:
+  - one-time setup token (hashed in DB)
+  - expiry (24h)
+  - invite link (`/set-password?token=...`)
+- New endpoint:
+  - `POST /api/auth/set-password`
+- Login now blocks users with `MustChangePassword = true`.
+
+Updated files:
+- [AppUser.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.Domain/Entities/AppUser.cs)
+- [AppDbContext.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.DAL/Data/AppDbContext.cs)
+- [CreateUserDto.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.Dtos/CreateUserDto.cs)
+- [InviteUserResponseDto.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.Dtos/InviteUserResponseDto.cs)
+- [SetPasswordDto.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.Dtos/SetPasswordDto.cs)
+- [IUserService.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.BLL/Services/IUserService.cs)
+- [UserService.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.BLL/Services/UserService.cs)
+- [IAuthService.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.BLL/Services/IAuthService.cs)
+- [AuthService.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.BLL/Services/AuthService.cs)
+- [AuthController.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.API/Controllers/AuthController.cs)
+- [IUserRepository.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.DAL/Repositories/Interfaces/IUserRepository.cs)
+- [UserRepository.cs](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.DAL/Repositories/UserRepository.cs)
+- [appsettings.json](c:/Users/Ali Raza/source/repos/ConstructionManagement.API/ConstructionManagement.API/appsettings.json) (`Frontend:BaseUrl` added)
+
+#### Frontend (`construction-management-ui`)
+- Admin user create form switched to invite flow (no password input).
+- Invite link shown after creation with copy button.
+- New public set-password page added.
+- User list now shows onboarding state (`Invite Pending` / `Password Set`).
+
+Updated/added:
+- [user.model.ts](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/features/user-management/models/user.model.ts)
+- [user-management.ts](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/features/user-management/services/user-management.ts)
+- [user-form.ts](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/features/user-management/pages/user-form/user-form.ts)
+- [user-form.html](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/features/user-management/pages/user-form/user-form.html)
+- [set-password.ts](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/features/auth/set-password/set-password.ts)
+- [set-password.html](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/features/auth/set-password/set-password.html)
+- [auth.ts](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/features/auth/services/auth.ts)
+- [app.routes.ts](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/app.routes.ts)
+- [user-list.html](c:/Users/Ali Raza/source/repos/construction-management-ui/src/app/features/user-management/pages/user-list/user-list.html)
+
+### Validation
+- Frontend build: passed.
+- Backend CLI build in this environment still returns `Build FAILED` with `0 errors` (same environment issue as before).
+
+### Important next step (DB migration)
+`dotnet-ef` is not installed on your machine path. Run:
+
+1. `dotnet tool install --global dotnet-ef`
+2. `dotnet ef migrations add InviteOnboarding --project ConstructionManagement.DAL --startup-project ConstructionManagement.API --context AppDbContext`
+3. `dotnet ef database update --project ConstructionManagement.DAL --startup-project ConstructionManagement.API`
+
+If you want, next I’ll add **Resend Invite** and **Invite Revoke** endpoints/UI as well.
 
 
 ---

@@ -30,6 +30,9 @@ public static class AdminSeeder
                 existing.Role = ApplicationRoles.Admin;
                 existing.IsDeleted = false;
                 existing.IsActive = true;
+                existing.MustChangePassword = false;
+                existing.PasswordSetupTokenHash = null;
+                existing.PasswordSetupTokenExpiresAtUtc = null;
                 existing.UpdatedAt = DateTime.UtcNow;
                 existing.DeletedAt = null;
                 await db.SaveChangesAsync();
@@ -45,6 +48,7 @@ public static class AdminSeeder
             Role = ApplicationRoles.Admin,
             IsActive = true,
             IsDeleted = false,
+            MustChangePassword = false,
             CreatedAt = DateTime.UtcNow
         };
 
