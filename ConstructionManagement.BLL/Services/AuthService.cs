@@ -39,7 +39,8 @@ namespace ConstructionManagement.BLL.Services
                 Role = ApplicationRoles.Client,
                 IsActive = true,
                 IsDeleted = false,
-                MustChangePassword = false
+                MustChangePassword = false,
+                IsFirstLogin = false
             };
 
             await _userRepository.AddAsync(user);
@@ -71,7 +72,8 @@ namespace ConstructionManagement.BLL.Services
                 return new AuthResultDto
                 {
                     Success = false,
-                    Message = "Password setup is pending. Use your invite link to set password first."
+                    Message = "Password setup is pending. Complete the emailed invite link before signing in.",
+                    IsFirstLogin = false
                 };
             }
 
@@ -84,7 +86,8 @@ namespace ConstructionManagement.BLL.Services
                 };
             }
 
-            if (!ApplicationRoles.All.Contains(user.Role))
+            var normalizedRole = ApplicationRoles.Normalize(user.Role);
+            if (normalizedRole == null)
             {
                 return new AuthResultDto
                 {
@@ -93,6 +96,8 @@ namespace ConstructionManagement.BLL.Services
                 };
             }
 
+            user.Role = normalizedRole;
+
             var tokenResult = _tokenService.CreateToken(user);
             return new AuthResultDto
             {
@@ -100,7 +105,57 @@ namespace ConstructionManagement.BLL.Services
                 Message = "Login successful.",
                 Token = tokenResult.Token,
                 Role = user.Role,
-                ExpiresAtUtc = tokenResult.ExpiresAtUtc
+                ExpiresAtUtc = tokenResult.ExpiresAtUtc,
+                IsFirstLogin = user.IsFirstLogin
+            };
+        }
+
+        public async Task<AuthResultDto> CompleteFirstLogin(Guid userId, CompleteFirstLoginDto dto)
+        {
+            var user = await _userRepository.GetByIdActiveAsync(userId);
+            if (user == null)
+            {
+                return new AuthResultDto { Success = false, Message = "User not found." };
+            }
+
+            if (!user.IsFirstLogin)
+            {
+                return new AuthResultDto { Success = false, Message = "First login onboarding is already complete." };
+            }
+
+            if (user.Role == ApplicationRoles.Client)
+            {
+                return new AuthResultDto { Success = false, Message = "This flow is only for internal staff accounts." };
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
+            {
+                return new AuthResultDto { Success = false, Message = "Current password is incorrect." };
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword, workFactor: 12);
+            user.FullName = dto.FullName.Trim();
+            user.PhoneNumber = dto.PhoneNumber.Trim();
+            user.IsFirstLogin = false;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            var persistedRole = ApplicationRoles.Normalize(user.Role);
+            if (persistedRole != null)
+            {
+                user.Role = persistedRole;
+            }
+
+            await _userRepository.SaveChangesAsync();
+
+            var tokenResult = _tokenService.CreateToken(user);
+            return new AuthResultDto
+            {
+                Success = true,
+                Message = "Profile and password saved. Welcome.",
+                Token = tokenResult.Token,
+                Role = user.Role,
+                ExpiresAtUtc = tokenResult.ExpiresAtUtc,
+                IsFirstLogin = false
             };
         }
 
@@ -119,6 +174,7 @@ namespace ConstructionManagement.BLL.Services
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, workFactor: 12);
             user.MustChangePassword = false;
+            user.IsFirstLogin = false;
             user.PasswordSetupTokenHash = null;
             user.PasswordSetupTokenExpiresAtUtc = null;
             user.UpdatedAt = DateTime.UtcNow;

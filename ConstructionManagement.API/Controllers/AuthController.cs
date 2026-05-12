@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
+namespace ConstructionManagement.API.Controllers;
+
 [ApiController]
 [Route("api/auth")]
 public class AuthController : ControllerBase
@@ -70,6 +72,24 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("complete-first-login")]
+    [Authorize]
+    public async Task<IActionResult> CompleteFirstLogin([FromBody] CompleteFirstLoginDto dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized(ApiResponseDto<object>.Fail("Invalid token subject."));
+        }
+
+        var result = await _auth.CompleteFirstLogin(userId, dto);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
     [HttpGet("me")]
     [Authorize]
     public IActionResult Me()
@@ -87,5 +107,11 @@ public class AuthController : ControllerBase
     public IActionResult AdminOnly()
     {
         return Ok(new { message = "Admin access granted." });
+    }
+
+    private bool TryGetUserId(out Guid userId)
+    {
+        var idValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(idValue, out userId);
     }
 }

@@ -16,5 +16,28 @@ namespace ConstructionManagement.Domain.Constants
             Accountant,
             Client
         };
+
+        public static bool IsStaffAssignableRole(string? normalizedRole)
+        {
+            return normalizedRole is ProjectManager or Engineer or Accountant;
+        }
+
+        public static string? Normalize(string? role)
+        {
+            if (string.IsNullOrWhiteSpace(role))
+            {
+                return null;
+            }
+
+            return role.Trim().ToLowerInvariant() switch
+            {
+                "admin" => Admin,
+                "project manager" => ProjectManager,
+                "engineer" => Engineer,
+                "accountant" => Accountant,
+                "client" => Client,
+                _ => null
+            };
+        }
     }
 }

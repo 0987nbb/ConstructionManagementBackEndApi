@@ -1,28 +1,31 @@
-using ConstructionManagement.DAL.Data;
 using ConstructionManagement.Domain.Constants;
 using ConstructionManagement.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace ConstructionManagement.API.Seed;
+namespace ConstructionManagement.DAL.Data;
 
-public static class AdminSeeder
+public static class SeedData
 {
-    public static async Task SeedAsync(IServiceProvider services, IConfiguration configuration)
+    public static void SeedDatabase(AppDbContext context, SeedAdminOptions adminOptions)
     {
-        using var scope = services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await db.Database.MigrateAsync();
+        context.Database.Migrate();
 
-        var email = configuration["SeedAdmin:Email"]?.Trim().ToLowerInvariant();
-        var password = configuration["SeedAdmin:Password"];
-        var fullName = configuration["SeedAdmin:FullName"]?.Trim();
+        EnsureAdmin(context, adminOptions);
+    }
+
+    private static void EnsureAdmin(AppDbContext context, SeedAdminOptions options)
+    {
+        if (!options.Enabled)
+            return;
+
+        var email = options.Email?.Trim().ToLowerInvariant();
+        var password = options.Password;
+        var fullName = options.FullName?.Trim();
 
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(fullName))
-        {
             return;
-        }
 
-        var existing = await db.Users.FirstOrDefaultAsync(x => x.Email == email);
+        var existing = context.Users.FirstOrDefault(x => x.Email == email);
         if (existing != null)
         {
             if (existing.Role != ApplicationRoles.Admin || existing.IsDeleted || !existing.IsActive)
@@ -35,12 +38,13 @@ public static class AdminSeeder
                 existing.PasswordSetupTokenExpiresAtUtc = null;
                 existing.UpdatedAt = DateTime.UtcNow;
                 existing.DeletedAt = null;
-                await db.SaveChangesAsync();
+                context.SaveChanges();
             }
+
             return;
         }
 
-        var admin = new AppUser
+        context.Users.Add(new AppUser
         {
             FullName = fullName,
             Email = email,
@@ -49,10 +53,10 @@ public static class AdminSeeder
             IsActive = true,
             IsDeleted = false,
             MustChangePassword = false,
+            IsFirstLogin = true,
             CreatedAt = DateTime.UtcNow
-        };
+        });
 
-        db.Users.Add(admin);
-        await db.SaveChangesAsync();
+        context.SaveChanges();
     }
 }

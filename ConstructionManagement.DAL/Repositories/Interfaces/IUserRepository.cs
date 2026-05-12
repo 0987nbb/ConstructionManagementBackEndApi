@@ -14,4 +14,5 @@ public interface IUserRepository
     Task<int> CountActiveUsersAsync();
     Task<int> CountInactiveUsersAsync();
     Task<int> CountByRoleAsync(string role);
+    Task<List<AppUser>> SearchAsync(string? search, string? role, bool? isActive);
 }

@@ -48,4 +48,30 @@ public class UserRepository : GenericRepository<AppUser>, IUserRepository
     public Task<int> CountByRoleAsync(string role) =>
         _context.Users.CountAsync(x => !x.IsDeleted && x.Role == role);
 
+    public Task<List<AppUser>> SearchAsync(string? search, string? role, bool? isActive)
+    {
+        var query = _context.Users.Where(x => !x.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            query = query.Where(x =>
+                x.FullName.ToLower().Contains(s) ||
+                x.Email.ToLower().Contains(s) ||
+                (x.PhoneNumber != null && x.PhoneNumber.ToLower().Contains(s)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            query = query.Where(x => x.Role == role);
+        }
+
+        if (isActive.HasValue)
+        {
+            query = query.Where(x => x.IsActive == isActive.Value);
+        }
+
+        return query.OrderByDescending(x => x.CreatedAt).ToListAsync();
+    }
+
 }

@@ -26,15 +26,15 @@ public class UsersController : ControllerBase
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
         var response = await _userService.AddUserAsync(dto);
-        return response.Success ? Ok(response) : BadRequest(response);
+        return response.Success ? StatusCode(StatusCodes.Status201Created, response) : BadRequest(response);
     }
 
     [HttpGet]
     [Authorize(Roles = ApplicationRoles.Admin)]
-    public async Task<IActionResult> GetAllUsers()
+    public async Task<IActionResult> GetAllUsers([FromQuery] UserQueryDto query)
     {
-        var response = await _userService.GetAllUsersAsync();
-        return Ok(response);
+        var response = await _userService.GetAllUsersAsync(query);
+        return response.Success ? Ok(response) : BadRequest(response);
     }
 
     [HttpGet("{id:guid}")]
@@ -70,6 +70,16 @@ public class UsersController : ControllerBase
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
         var response = await _userService.UpdateUserStatusAsync(id, dto);
+        return response.Success ? Ok(response) : NotFound(response);
+    }
+
+    [HttpPatch("{id:guid}/reset-password")]
+    [Authorize(Roles = ApplicationRoles.Admin)]
+    public async Task<IActionResult> AdminResetTemporaryPassword(Guid id, [FromBody] AdminResetPasswordDto dto)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+        var response = await _userService.AdminResetTemporaryPasswordAsync(id, dto);
         return response.Success ? Ok(response) : NotFound(response);
     }
 

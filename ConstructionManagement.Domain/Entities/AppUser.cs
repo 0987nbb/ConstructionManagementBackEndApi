@@ -11,6 +11,7 @@ namespace ConstructionManagement.Domain.Entities
         public bool IsActive { get; set; } = true;
         public bool IsDeleted { get; set; } = false;
         public bool MustChangePassword { get; set; } = false;
+        public bool IsFirstLogin { get; set; } = false;
         public string? PasswordSetupTokenHash { get; set; }
         public DateTime? PasswordSetupTokenExpiresAtUtc { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
