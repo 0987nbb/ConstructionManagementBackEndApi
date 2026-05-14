@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace ConstructionManagement.BLL.Services
@@ -17,15 +18,11 @@ namespace ConstructionManagement.BLL.Services
             _config = config;
         }
 
-        public (string Token, DateTime ExpiresAtUtc) CreateToken(AppUser user)
+        public (string Token, DateTime ExpiresAtUtc) CreateAccessToken(AppUser user)
         {
-            var jwtKey = _config["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is missing in configuration.");
-            var jwtIssuer = _config["Jwt:Issuer"] ?? throw new InvalidOperationException("Jwt:Issuer is missing in configuration.");
-            var jwtAudience = _config["Jwt:Audience"] ?? throw new InvalidOperationException("Jwt:Audience is missing in configuration.");
-            if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
-            {
-                throw new InvalidOperationException("Jwt:Key must be at least 32 bytes for HS256.");
-            }
+            var jwtKey = GetJwtKey();
+            var jwtIssuer = _config["JWT_ISSUER"] ?? _config["Jwt:Issuer"] ?? throw new InvalidOperationException("JWT issuer is missing.");
+            var jwtAudience = _config["JWT_AUDIENCE"] ?? _config["Jwt:Audience"] ?? throw new InvalidOperationException("JWT audience is missing.");
 
             var claims = new[]
             {
@@ -37,7 +34,7 @@ namespace ConstructionManagement.BLL.Services
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var expiresAtUtc = DateTime.UtcNow.AddHours(8);
+            var expiresAtUtc = DateTime.UtcNow.AddMinutes(30);
 
             var token = new JwtSecurityToken(
                 issuer: jwtIssuer,
@@ -48,6 +45,37 @@ namespace ConstructionManagement.BLL.Services
             );
 
             return (new JwtSecurityTokenHandler().WriteToken(token), expiresAtUtc);
+        }
+
+        public (string RawToken, string TokenHash, DateTime ExpiresAtUtc) CreateRefreshToken()
+        {
+            var rawBytes = RandomNumberGenerator.GetBytes(64);
+            var rawToken = Convert.ToBase64String(rawBytes);
+            var tokenHash = HashToken(rawToken);
+            var expiresAtUtc = DateTime.UtcNow.AddDays(7);
+            return (rawToken, tokenHash, expiresAtUtc);
+        }
+
+        public static string HashToken(string token)
+        {
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+            return Convert.ToHexString(bytes);
+        }
+
+        public string GetJwtKey()
+        {
+            var jwtKey = _config["JWT_KEY"] ?? _config["Jwt:Key"];
+            if (string.IsNullOrWhiteSpace(jwtKey))
+            {
+                throw new InvalidOperationException("JWT key is missing. Set JWT_KEY or Jwt:Key.");
+            }
+
+            if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
+            {
+                throw new InvalidOperationException("JWT key must be at least 32 bytes for HS256.");
+            }
+
+            return jwtKey;
         }
     }
 }

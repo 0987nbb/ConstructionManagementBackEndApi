@@ -16,7 +16,7 @@ public class UserRepository : GenericRepository<AppUser>, IUserRepository
     }
 
     public Task<bool> EmailExistsAsync(string normalizedEmail) =>
-        _context.Users.AnyAsync(x => x.Email == normalizedEmail);
+        _context.Users.AnyAsync(x => !x.IsDeleted && x.Email == normalizedEmail);
 
     public Task<AppUser?> GetByEmailAsync(string normalizedEmail) =>
         _context.Users.FirstOrDefaultAsync(x => x.Email == normalizedEmail);
@@ -73,5 +73,4 @@ public class UserRepository : GenericRepository<AppUser>, IUserRepository
 
         return query.OrderByDescending(x => x.CreatedAt).ToListAsync();
     }
-
 }

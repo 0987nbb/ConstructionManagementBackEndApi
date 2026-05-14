@@ -8,10 +8,12 @@ namespace ConstructionManagement.BLL.Services;
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IAuditService _auditService;
 
-    public UserService(IUserRepository userRepository)
+    public UserService(IUserRepository userRepository, IAuditService auditService)
     {
         _userRepository = userRepository;
+        _auditService = auditService;
     }
 
     public async Task<ApiResponseDto<CreateStaffUserResponseDto>> AddUserAsync(CreateUserDto dto)
@@ -160,6 +162,7 @@ public class UserService : IUserService
         user.UpdatedAt = DateTime.UtcNow;
 
         await _userRepository.SaveChangesAsync();
+        await _auditService.LogAsync(user.Id, "user.role.changed", null, new { user.Id, Role = user.Role });
         return ApiResponseDto<UserDto>.Ok(Map(user), "User role updated successfully.");
     }
 
@@ -204,9 +207,12 @@ public class UserService : IUserService
         user.MustChangePassword = false;
         user.PasswordSetupTokenHash = null;
         user.PasswordSetupTokenExpiresAtUtc = null;
+        user.FailedLoginAttempts = 0;
+        user.LockoutEndUtc = null;
         user.UpdatedAt = DateTime.UtcNow;
 
         await _userRepository.SaveChangesAsync();
+        await _auditService.LogAsync(user.Id, "user.password.reset_by_admin", null, null);
 
         return ApiResponseDto<AdminPasswordResetResponseDto>.Ok(
             new AdminPasswordResetResponseDto { TemporaryPassword = temp },

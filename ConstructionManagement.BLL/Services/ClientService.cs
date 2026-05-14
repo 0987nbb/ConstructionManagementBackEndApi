@@ -8,11 +8,13 @@ public class ClientService : IClientService
 {
     private readonly IClientRepository _clientRepository;
     private readonly IProjectRepository _projectRepository;
+    private readonly IAuditService _auditService;
 
-    public ClientService(IClientRepository clientRepository, IProjectRepository projectRepository)
+    public ClientService(IClientRepository clientRepository, IProjectRepository projectRepository, IAuditService auditService)
     {
         _clientRepository = clientRepository;
         _projectRepository = projectRepository;
+        _auditService = auditService;
     }
 
     public async Task<ApiResponseDto<ClientDto>> CreateAsync(CreateClientDto dto)
@@ -106,22 +108,31 @@ public class ClientService : IClientService
         }
 
         var code = dto.ProjectCode.Trim().ToUpperInvariant();
-        if (await _projectRepository.GetByCodeAsync(code) != null)
+        var project = await _projectRepository.GetByCodeAsync(code);
+
+        if (project == null)
         {
-            return ApiResponseDto<ClientDto>.Fail("Project code already exists.");
+            project = new Project
+            {
+                Name = dto.ProjectName.Trim(),
+                Code = code,
+                ClientId = clientId
+            };
+
+            await _projectRepository.AddAsync(project);
+            await _projectRepository.SaveChangesAsync();
+        }
+        else if (project.ClientId != clientId)
+        {
+            return ApiResponseDto<ClientDto>.Fail("Project is already assigned to a different client.");
         }
 
-        var project = new Project
+        if (client.Projects.All(p => p.Id != project.Id))
         {
-            Name = dto.ProjectName.Trim(),
-            Code = code,
-            ClientId = clientId
-        };
+            client.Projects.Add(project);
+        }
 
-        await _projectRepository.AddAsync(project);
-        await _projectRepository.SaveChangesAsync();
-        client.Projects.Add(project);
-
+        await _auditService.LogAsync(null, "client.project.linked", null, new { ClientId = clientId, ProjectCode = code });
         return ApiResponseDto<ClientDto>.Ok(Map(client), "Project linked to client successfully.");
     }
 

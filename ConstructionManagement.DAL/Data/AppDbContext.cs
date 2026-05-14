@@ -13,6 +13,9 @@ namespace ConstructionManagement.DAL.Data
         public DbSet<AppUser> Users { get; set; }
         public DbSet<Client> Clients { get; set; }
         public DbSet<Project> Projects { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -20,7 +23,7 @@ namespace ConstructionManagement.DAL.Data
 
             modelBuilder.Entity<AppUser>(entity =>
             {
-                entity.HasIndex(x => x.Email).IsUnique();
+                entity.HasIndex(x => x.Email).IsUnique().HasFilter("[IsDeleted] = 0");
                 entity.Property(x => x.FullName).HasMaxLength(100).IsRequired();
                 entity.Property(x => x.Email).HasMaxLength(255).IsRequired();
                 entity.Property(x => x.PasswordHash).HasMaxLength(255).IsRequired();
@@ -40,7 +43,7 @@ namespace ConstructionManagement.DAL.Data
 
             modelBuilder.Entity<Client>(entity =>
             {
-                entity.HasIndex(x => x.Email).IsUnique();
+                entity.HasIndex(x => x.Email).IsUnique().HasFilter("[IsDeleted] = 0");
                 entity.Property(x => x.Name).HasMaxLength(120).IsRequired();
                 entity.Property(x => x.Email).HasMaxLength(255).IsRequired();
                 entity.Property(x => x.Phone).HasMaxLength(30).IsRequired();
@@ -53,11 +56,48 @@ namespace ConstructionManagement.DAL.Data
             modelBuilder.Entity<Project>(entity =>
             {
                 entity.HasIndex(x => x.Code).IsUnique();
+                entity.HasIndex(x => x.ClientId);
                 entity.Property(x => x.Name).HasMaxLength(160).IsRequired();
                 entity.Property(x => x.Code).HasMaxLength(50).IsRequired();
                 entity.HasOne(x => x.Client)
                     .WithMany(c => c.Projects)
                     .HasForeignKey(x => x.ClientId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.HasIndex(x => x.TokenHash).IsUnique();
+                entity.HasIndex(x => new { x.UserId, x.IsRevoked, x.ExpiresAtUtc });
+                entity.Property(x => x.TokenHash).HasMaxLength(128).IsRequired();
+                entity.Property(x => x.CreatedByIp).HasMaxLength(64);
+                entity.Property(x => x.ReplacedByTokenHash).HasMaxLength(128);
+                entity.HasOne(x => x.User)
+                    .WithMany(u => u.RefreshTokens)
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<PasswordResetToken>(entity =>
+            {
+                entity.HasIndex(x => x.TokenHash).IsUnique();
+                entity.HasIndex(x => new { x.UserId, x.IsRevoked, x.ExpiresAtUtc });
+                entity.Property(x => x.TokenHash).HasMaxLength(128).IsRequired();
+                entity.HasOne(x => x.User)
+                    .WithMany(u => u.PasswordResetTokens)
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<AuditLog>(entity =>
+            {
+                entity.HasIndex(x => new { x.UserId, x.TimestampUtc });
+                entity.Property(x => x.Action).HasMaxLength(120).IsRequired();
+                entity.Property(x => x.IpAddress).HasMaxLength(64);
+                entity.Property(x => x.Metadata).HasMaxLength(1000);
+                entity.HasOne(x => x.User)
+                    .WithMany(u => u.AuditLogs)
+                    .HasForeignKey(x => x.UserId)
                     .OnDelete(DeleteBehavior.SetNull);
             });
         }

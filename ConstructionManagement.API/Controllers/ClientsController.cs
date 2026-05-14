@@ -62,4 +62,10 @@ public class ClientsController : ControllerBase
         var response = await _clientService.LinkProjectAsync(id, dto);
         return response.Success ? Ok(response) : BadRequest(response);
     }
+
+    [HttpPost("{id:guid}/projects/link")]
+    public Task<IActionResult> LinkProjectV2(Guid id, [FromBody] LinkClientProjectDto dto)
+    {
+        return LinkProject(id, dto);
+    }
 }

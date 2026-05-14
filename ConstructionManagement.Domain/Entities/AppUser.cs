@@ -14,8 +14,14 @@ namespace ConstructionManagement.Domain.Entities
         public bool IsFirstLogin { get; set; } = false;
         public string? PasswordSetupTokenHash { get; set; }
         public DateTime? PasswordSetupTokenExpiresAtUtc { get; set; }
+        public int FailedLoginAttempts { get; set; } = 0;
+        public DateTime? LastFailedLoginAtUtc { get; set; }
+        public DateTime? LockoutEndUtc { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
         public DateTime? DeletedAt { get; set; }
+        public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+        public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
+        public ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
     }
 }

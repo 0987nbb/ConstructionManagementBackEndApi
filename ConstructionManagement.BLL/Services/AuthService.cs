@@ -2,20 +2,33 @@ using ConstructionManagement.DAL.Repositories.Interfaces;
 using ConstructionManagement.Domain.Constants;
 using ConstructionManagement.Domain.Entities;
 using ConstructionManagement.Dtos;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace ConstructionManagement.BLL.Services
 {
     public class AuthService : IAuthService
     {
-        private readonly IUserRepository _userRepository;
-        private readonly TokenService _tokenService;
+        private const int MaxFailedAttempts = 5;
+        private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
+        private static readonly TimeSpan PasswordResetTokenLifetime = TimeSpan.FromHours(1);
 
-        public AuthService(IUserRepository userRepository, TokenService tokenService)
+        private readonly IUserRepository _userRepository;
+        private readonly IRefreshTokenRepository _refreshTokenRepository;
+        private readonly IPasswordResetTokenRepository _passwordResetTokenRepository;
+        private readonly TokenService _tokenService;
+        private readonly IAuditService _auditService;
+
+        public AuthService(
+            IUserRepository userRepository,
+            IRefreshTokenRepository refreshTokenRepository,
+            IPasswordResetTokenRepository passwordResetTokenRepository,
+            TokenService tokenService,
+            IAuditService auditService)
         {
             _userRepository = userRepository;
+            _refreshTokenRepository = refreshTokenRepository;
+            _passwordResetTokenRepository = passwordResetTokenRepository;
             _tokenService = tokenService;
+            _auditService = auditService;
         }
 
         public async Task<AuthResultDto> Register(RegisterDto dto)
@@ -24,11 +37,7 @@ namespace ConstructionManagement.BLL.Services
             var exists = await _userRepository.EmailExistsAsync(normalizedEmail);
             if (exists)
             {
-                return new AuthResultDto
-                {
-                    Success = false,
-                    Message = "An account with this email already exists."
-                };
+                return new AuthResultDto { Success = false, Message = "An account with this email already exists." };
             }
 
             var user = new AppUser
@@ -46,68 +55,150 @@ namespace ConstructionManagement.BLL.Services
             await _userRepository.AddAsync(user);
             await _userRepository.SaveChangesAsync();
 
-            return new AuthResultDto
-            {
-                Success = true,
-                Message = "User registered successfully.",
-                Role = user.Role
-            };
+            return new AuthResultDto { Success = true, Message = "User registered successfully.", Role = user.Role };
         }
 
-        public async Task<AuthResultDto> Login(LoginDto dto)
+        public async Task<AuthResultDto> Login(LoginDto dto, string? ipAddress)
         {
             var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
             var user = await _userRepository.GetByEmailAsync(normalizedEmail);
-            if (user == null || user.IsDeleted || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+
+            if (user == null || user.IsDeleted)
             {
-                return new AuthResultDto
-                {
-                    Success = false,
-                    Message = "Invalid email or password."
-                };
+                await _auditService.LogAsync(null, "login.failed", ipAddress, new { Email = normalizedEmail, Reason = "invalid_credentials" });
+                return new AuthResultDto { Success = false, Message = "Invalid email or password." };
             }
 
-            if (user.MustChangePassword)
+            if (user.LockoutEndUtc.HasValue && user.LockoutEndUtc.Value > DateTime.UtcNow)
             {
-                return new AuthResultDto
+                await _auditService.LogAsync(user.Id, "login.locked_out", ipAddress, new { user.Email, user.LockoutEndUtc });
+                return new AuthResultDto { Success = false, Message = "Account is locked. Try again later." };
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+            {
+                user.FailedLoginAttempts += 1;
+                user.LastFailedLoginAtUtc = DateTime.UtcNow;
+                if (user.FailedLoginAttempts >= MaxFailedAttempts)
                 {
-                    Success = false,
-                    Message = "Password setup is pending. Complete the emailed invite link before signing in.",
-                    IsFirstLogin = false
-                };
+                    user.LockoutEndUtc = DateTime.UtcNow.Add(LockoutDuration);
+                    user.FailedLoginAttempts = 0;
+                }
+
+                user.UpdatedAt = DateTime.UtcNow;
+                await _userRepository.SaveChangesAsync();
+                await _auditService.LogAsync(user.Id, "login.failed", ipAddress, new { user.Email, user.LockoutEndUtc });
+                return new AuthResultDto { Success = false, Message = "Invalid email or password." };
             }
 
             if (!user.IsActive)
             {
-                return new AuthResultDto
-                {
-                    Success = false,
-                    Message = "User account is inactive. Contact administrator."
-                };
+                await _auditService.LogAsync(user.Id, "login.blocked_inactive", ipAddress, null);
+                return new AuthResultDto { Success = false, Message = "User account is inactive. Contact administrator." };
             }
 
             var normalizedRole = ApplicationRoles.Normalize(user.Role);
             if (normalizedRole == null)
             {
-                return new AuthResultDto
-                {
-                    Success = false,
-                    Message = "User role is invalid. Contact administrator."
-                };
+                return new AuthResultDto { Success = false, Message = "User role is invalid. Contact administrator." };
             }
 
             user.Role = normalizedRole;
+            user.FailedLoginAttempts = 0;
+            user.LockoutEndUtc = null;
+            user.LastFailedLoginAtUtc = null;
+            user.UpdatedAt = DateTime.UtcNow;
 
-            var tokenResult = _tokenService.CreateToken(user);
+            var access = _tokenService.CreateAccessToken(user);
+            var refresh = _tokenService.CreateRefreshToken();
+            await _refreshTokenRepository.AddAsync(new RefreshToken
+            {
+                UserId = user.Id,
+                TokenHash = refresh.TokenHash,
+                ExpiresAtUtc = refresh.ExpiresAtUtc,
+                CreatedByIp = ipAddress
+            });
+            await _userRepository.SaveChangesAsync();
+
+            await _auditService.LogAsync(user.Id, "login.success", ipAddress, null);
+
             return new AuthResultDto
             {
                 Success = true,
                 Message = "Login successful.",
-                Token = tokenResult.Token,
+                Token = access.Token,
+                RefreshToken = refresh.RawToken,
                 Role = user.Role,
-                ExpiresAtUtc = tokenResult.ExpiresAtUtc,
+                ExpiresAtUtc = access.ExpiresAtUtc,
                 IsFirstLogin = user.IsFirstLogin
             };
+        }
+
+        public async Task<AuthResultDto> RefreshTokenAsync(string refreshToken, string? ipAddress)
+        {
+            var tokenHash = TokenService.HashToken(refreshToken.Trim());
+            var stored = await _refreshTokenRepository.GetByTokenHashAsync(tokenHash);
+            if (stored == null || stored.User == null || stored.User.IsDeleted || !stored.User.IsActive || stored.IsRevoked || stored.ExpiresAtUtc <= DateTime.UtcNow)
+            {
+                return new AuthResultDto { Success = false, Message = "Invalid refresh token." };
+            }
+
+            var user = stored.User;
+            var normalizedRole = ApplicationRoles.Normalize(user.Role);
+            if (normalizedRole == null)
+            {
+                return new AuthResultDto { Success = false, Message = "User role is invalid. Contact administrator." };
+            }
+
+            user.Role = normalizedRole;
+
+            var newAccess = _tokenService.CreateAccessToken(user);
+            var newRefresh = _tokenService.CreateRefreshToken();
+
+            stored.IsRevoked = true;
+            stored.RevokedAtUtc = DateTime.UtcNow;
+            stored.ReplacedByTokenHash = newRefresh.TokenHash;
+
+            await _refreshTokenRepository.AddAsync(new RefreshToken
+            {
+                UserId = user.Id,
+                TokenHash = newRefresh.TokenHash,
+                ExpiresAtUtc = newRefresh.ExpiresAtUtc,
+                CreatedByIp = ipAddress
+            });
+
+            await _refreshTokenRepository.SaveChangesAsync();
+
+            return new AuthResultDto
+            {
+                Success = true,
+                Message = "Token refreshed successfully.",
+                Token = newAccess.Token,
+                RefreshToken = newRefresh.RawToken,
+                Role = user.Role,
+                ExpiresAtUtc = newAccess.ExpiresAtUtc,
+                IsFirstLogin = user.IsFirstLogin
+            };
+        }
+
+        public async Task<ApiResponseDto<bool>> LogoutAsync(Guid userId, string refreshToken, string? ipAddress)
+        {
+            var tokenHash = TokenService.HashToken(refreshToken.Trim());
+            var stored = await _refreshTokenRepository.GetByTokenHashAsync(tokenHash);
+            if (stored == null || stored.UserId != userId)
+            {
+                return ApiResponseDto<bool>.Fail("Invalid refresh token.");
+            }
+
+            if (!stored.IsRevoked)
+            {
+                stored.IsRevoked = true;
+                stored.RevokedAtUtc = DateTime.UtcNow;
+                await _refreshTokenRepository.SaveChangesAsync();
+            }
+
+            await _auditService.LogAsync(userId, "logout.success", ipAddress, null);
+            return ApiResponseDto<bool>.Ok(true, "Logged out successfully.");
         }
 
         public async Task<AuthResultDto> CompleteFirstLogin(Guid userId, CompleteFirstLoginDto dto)
@@ -137,39 +228,41 @@ namespace ConstructionManagement.BLL.Services
             user.FullName = dto.FullName.Trim();
             user.PhoneNumber = dto.PhoneNumber.Trim();
             user.IsFirstLogin = false;
+            user.MustChangePassword = false;
             user.UpdatedAt = DateTime.UtcNow;
 
-            var persistedRole = ApplicationRoles.Normalize(user.Role);
-            if (persistedRole != null)
-            {
-                user.Role = persistedRole;
-            }
-
+            await _refreshTokenRepository.RevokeAllActiveForUserAsync(user.Id, DateTime.UtcNow);
             await _userRepository.SaveChangesAsync();
 
-            var tokenResult = _tokenService.CreateToken(user);
+            var access = _tokenService.CreateAccessToken(user);
+            var refresh = _tokenService.CreateRefreshToken();
+            await _refreshTokenRepository.AddAsync(new RefreshToken
+            {
+                UserId = user.Id,
+                TokenHash = refresh.TokenHash,
+                ExpiresAtUtc = refresh.ExpiresAtUtc
+            });
+            await _refreshTokenRepository.SaveChangesAsync();
+
             return new AuthResultDto
             {
                 Success = true,
                 Message = "Profile and password saved. Welcome.",
-                Token = tokenResult.Token,
+                Token = access.Token,
+                RefreshToken = refresh.RawToken,
                 Role = user.Role,
-                ExpiresAtUtc = tokenResult.ExpiresAtUtc,
+                ExpiresAtUtc = access.ExpiresAtUtc,
                 IsFirstLogin = false
             };
         }
 
         public async Task<AuthResultDto> SetPassword(SetPasswordDto dto)
         {
-            var tokenHash = HashToken(dto.Token.Trim());
+            var tokenHash = TokenService.HashToken(dto.Token.Trim());
             var user = await _userRepository.GetByPasswordSetupTokenHashAsync(tokenHash);
             if (user == null || user.PasswordSetupTokenExpiresAtUtc is null || user.PasswordSetupTokenExpiresAtUtc < DateTime.UtcNow)
             {
-                return new AuthResultDto
-                {
-                    Success = false,
-                    Message = "Invite link is invalid or expired."
-                };
+                return new AuthResultDto { Success = false, Message = "Invite link is invalid or expired." };
             }
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, workFactor: 12);
@@ -179,21 +272,62 @@ namespace ConstructionManagement.BLL.Services
             user.PasswordSetupTokenExpiresAtUtc = null;
             user.UpdatedAt = DateTime.UtcNow;
             user.IsActive = true;
-
+            await _refreshTokenRepository.RevokeAllActiveForUserAsync(user.Id, DateTime.UtcNow);
             await _userRepository.SaveChangesAsync();
 
-            return new AuthResultDto
-            {
-                Success = true,
-                Message = "Password set successfully. You can now log in.",
-                Role = user.Role
-            };
+            return new AuthResultDto { Success = true, Message = "Password set successfully. You can now log in.", Role = user.Role };
         }
 
-        private static string HashToken(string token)
+        public async Task<ApiResponseDto<bool>> RequestPasswordResetAsync(RequestPasswordResetDto dto, string? ipAddress)
         {
-            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
-            return Convert.ToHexString(bytes);
+            var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
+            var user = await _userRepository.GetByEmailAsync(normalizedEmail);
+
+            if (user != null && !user.IsDeleted)
+            {
+                await _passwordResetTokenRepository.RevokeAllActiveForUserAsync(user.Id, DateTime.UtcNow);
+                var refresh = _tokenService.CreateRefreshToken();
+                await _passwordResetTokenRepository.AddAsync(new PasswordResetToken
+                {
+                    UserId = user.Id,
+                    TokenHash = refresh.TokenHash,
+                    ExpiresAtUtc = DateTime.UtcNow.Add(PasswordResetTokenLifetime)
+                });
+                await _passwordResetTokenRepository.SaveChangesAsync();
+
+                await _auditService.LogAsync(user.Id, "password_reset.requested", ipAddress, new { user.Email });
+            }
+
+            return ApiResponseDto<bool>.Ok(true, "If the account exists, a password reset token has been issued.");
+        }
+
+        public async Task<ApiResponseDto<bool>> ResetPasswordAsync(ResetPasswordDto dto, string? ipAddress)
+        {
+            var tokenHash = TokenService.HashToken(dto.Token.Trim());
+            var token = await _passwordResetTokenRepository.GetValidByTokenHashAsync(tokenHash, DateTime.UtcNow);
+            if (token == null || token.User == null || token.User.IsDeleted)
+            {
+                return ApiResponseDto<bool>.Fail("Reset token is invalid or expired.");
+            }
+
+            token.UsedAtUtc = DateTime.UtcNow;
+            token.IsRevoked = true;
+
+            var user = token.User;
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword, workFactor: 12);
+            user.MustChangePassword = false;
+            user.IsFirstLogin = false;
+            user.FailedLoginAttempts = 0;
+            user.LockoutEndUtc = null;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _refreshTokenRepository.RevokeAllActiveForUserAsync(user.Id, DateTime.UtcNow);
+            await _passwordResetTokenRepository.RevokeAllActiveForUserAsync(user.Id, DateTime.UtcNow);
+            await _passwordResetTokenRepository.SaveChangesAsync();
+
+            await _auditService.LogAsync(user.Id, "password_reset.completed", ipAddress, null);
+
+            return ApiResponseDto<bool>.Ok(true, "Password has been reset successfully.");
         }
     }
 }

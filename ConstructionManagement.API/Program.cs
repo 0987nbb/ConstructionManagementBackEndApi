@@ -5,16 +5,17 @@ using ConstructionManagement.DAL.Repositories;
 using ConstructionManagement.DAL.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddScoped<FirstLoginAuthorizationFilter>();
 builder.Services.AddControllers(options =>
 {
-    options.Filters.Add(new FirstLoginAuthorizationFilter());
+    options.Filters.AddService<FirstLoginAuthorizationFilter>();
 });
 
 builder.Services.AddOpenApi(options =>
@@ -28,6 +29,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.Configure<SeedAdminOptions>(builder.Configuration.GetSection("SeedAdmin"));
 
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IClientService, ClientService>();
@@ -36,13 +38,30 @@ builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepositor
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IClientRepository, ClientRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
-var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is missing in configuration.");
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("Jwt:Issuer is missing in configuration.");
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? throw new InvalidOperationException("Jwt:Audience is missing in configuration.");
+var jwtKey = builder.Configuration["JWT_KEY"] ?? builder.Configuration["Jwt:Key"];
+var jwtIssuer = builder.Configuration["JWT_ISSUER"] ?? builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("JWT issuer is missing.");
+var jwtAudience = builder.Configuration["JWT_AUDIENCE"] ?? builder.Configuration["Jwt:Audience"] ?? throw new InvalidOperationException("JWT audience is missing.");
+
+if (string.IsNullOrWhiteSpace(jwtKey))
+{
+    if (builder.Environment.IsDevelopment())
+    {
+        // Development-only fallback so local startup does not fail on missing secrets.
+        jwtKey = "DEV_ONLY_HS256_KEY_CHANGE_BEFORE_PRODUCTION_2026";
+    }
+    else
+    {
+        throw new InvalidOperationException("JWT key is missing. Set JWT_KEY or Jwt:Key to at least 32 bytes.");
+    }
+}
+
 if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
 {
-    throw new InvalidOperationException("Jwt:Key must be at least 32 bytes for HS256.");
+    throw new InvalidOperationException("JWT key must be at least 32 bytes for HS256. Configure JWT_KEY or Jwt:Key with a value of 32+ bytes.");
 }
 
 builder.Services
@@ -100,3 +119,4 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+

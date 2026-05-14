@@ -1,6 +1,7 @@
 using ConstructionManagement.Domain.Constants;
 using ConstructionManagement.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace ConstructionManagement.DAL.Data;
 
@@ -9,7 +10,6 @@ public static class SeedData
     public static void SeedDatabase(AppDbContext context, SeedAdminOptions adminOptions)
     {
         context.Database.Migrate();
-
         EnsureAdmin(context, adminOptions);
     }
 
@@ -19,8 +19,8 @@ public static class SeedData
             return;
 
         var email = options.Email?.Trim().ToLowerInvariant();
-        var password = options.Password;
         var fullName = options.FullName?.Trim();
+        var password = Environment.GetEnvironmentVariable("SEED_ADMIN_PASSWORD") ?? options.Password;
 
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(fullName))
             return;
@@ -28,6 +28,8 @@ public static class SeedData
         var existing = context.Users.FirstOrDefault(x => x.Email == email);
         if (existing != null)
         {
+            existing.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password, workFactor: 12);
+
             if (existing.Role != ApplicationRoles.Admin || existing.IsDeleted || !existing.IsActive)
             {
                 existing.Role = ApplicationRoles.Admin;
@@ -38,8 +40,10 @@ public static class SeedData
                 existing.PasswordSetupTokenExpiresAtUtc = null;
                 existing.UpdatedAt = DateTime.UtcNow;
                 existing.DeletedAt = null;
-                context.SaveChanges();
             }
+
+            existing.UpdatedAt = DateTime.UtcNow;
+            context.SaveChanges();
 
             return;
         }

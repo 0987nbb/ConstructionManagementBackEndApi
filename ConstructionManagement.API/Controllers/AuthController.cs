@@ -22,16 +22,10 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
-        if (!ModelState.IsValid)
-        {
-            return ValidationProblem(ModelState);
-        }
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
         var result = await _auth.Register(dto);
-        if (!result.Success)
-        {
-            return BadRequest(result);
-        }
+        if (!result.Success) return BadRequest(result);
 
         return Ok(result);
     }
@@ -40,46 +34,74 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
-        if (!ModelState.IsValid)
-        {
-            return ValidationProblem(ModelState);
-        }
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
-        var result = await _auth.Login(dto);
-        if (!result.Success)
-        {
-            return Unauthorized(result);
-        }
+        var result = await _auth.Login(dto, HttpContext.Connection.RemoteIpAddress?.ToString());
+        if (!result.Success) return Unauthorized(result);
 
         return Ok(result);
+    }
+
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequestDto dto)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+        var result = await _auth.RefreshTokenAsync(dto.RefreshToken, HttpContext.Connection.RemoteIpAddress?.ToString());
+        if (!result.Success) return Unauthorized(result);
+
+        return Ok(result);
+    }
+
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout([FromBody] LogoutRequestDto dto)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        if (!TryGetUserId(out var userId)) return Unauthorized(ApiResponseDto<object>.Fail("Invalid token subject."));
+
+        var response = await _auth.LogoutAsync(userId, dto.RefreshToken, HttpContext.Connection.RemoteIpAddress?.ToString());
+        return response.Success ? Ok(response) : Unauthorized(response);
     }
 
     [HttpPost("set-password")]
     [AllowAnonymous]
     public async Task<IActionResult> SetPassword([FromBody] SetPasswordDto dto)
     {
-        if (!ModelState.IsValid)
-        {
-            return ValidationProblem(ModelState);
-        }
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
         var result = await _auth.SetPassword(dto);
-        if (!result.Success)
-        {
-            return BadRequest(result);
-        }
+        if (!result.Success) return BadRequest(result);
 
         return Ok(result);
+    }
+
+    [HttpPost("request-password-reset")]
+    [AllowAnonymous]
+    public async Task<IActionResult> RequestPasswordReset([FromBody] RequestPasswordResetDto dto)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+        var response = await _auth.RequestPasswordResetAsync(dto, HttpContext.Connection.RemoteIpAddress?.ToString());
+        return Ok(response);
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+        var response = await _auth.ResetPasswordAsync(dto, HttpContext.Connection.RemoteIpAddress?.ToString());
+        return response.Success ? Ok(response) : BadRequest(response);
     }
 
     [HttpPost("complete-first-login")]
     [Authorize]
     public async Task<IActionResult> CompleteFirstLogin([FromBody] CompleteFirstLoginDto dto)
     {
-        if (!ModelState.IsValid)
-        {
-            return ValidationProblem(ModelState);
-        }
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
         if (!TryGetUserId(out var userId))
         {
