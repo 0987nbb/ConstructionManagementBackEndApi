@@ -8,7 +8,7 @@ namespace ConstructionManagement.API.Controllers;
 
 [ApiController]
 [Route("api/clients")]
-[Authorize(Roles = ApplicationRoles.Admin)]
+[Authorize]
 public class ClientsController : ControllerBase
 {
     private readonly IClientService _clientService;
@@ -19,6 +19,7 @@ public class ClientsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = ApplicationRoles.Admin)]
     public async Task<IActionResult> Create([FromBody] CreateClientDto dto)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -27,6 +28,7 @@ public class ClientsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = ApplicationRoles.Admin + "," + ApplicationRoles.ProjectManager)]
     public async Task<IActionResult> GetAll([FromQuery] ClientQueryDto query)
     {
         var response = await _clientService.GetAllAsync(query);
@@ -34,6 +36,7 @@ public class ClientsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = ApplicationRoles.Admin + "," + ApplicationRoles.ProjectManager)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var response = await _clientService.GetByIdAsync(id);
@@ -41,6 +44,7 @@ public class ClientsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = ApplicationRoles.Admin)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateClientDto dto)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -49,23 +53,11 @@ public class ClientsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = ApplicationRoles.Admin)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var response = await _clientService.DeleteAsync(id);
         return response.Success ? Ok(response) : NotFound(response);
     }
 
-    [HttpPost("{id:guid}/projects")]
-    public async Task<IActionResult> LinkProject(Guid id, [FromBody] LinkClientProjectDto dto)
-    {
-        if (!ModelState.IsValid) return ValidationProblem(ModelState);
-        var response = await _clientService.LinkProjectAsync(id, dto);
-        return response.Success ? Ok(response) : BadRequest(response);
-    }
-
-    [HttpPost("{id:guid}/projects/link")]
-    public Task<IActionResult> LinkProjectV2(Guid id, [FromBody] LinkClientProjectDto dto)
-    {
-        return LinkProject(id, dto);
-    }
 }

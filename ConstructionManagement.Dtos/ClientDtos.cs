@@ -37,22 +37,11 @@ public class ClientQueryDto
     public bool? IsActive { get; set; }
 }
 
-public class LinkClientProjectDto
-{
-    [Required]
-    [StringLength(160, MinimumLength = 2)]
-    public string ProjectName { get; set; } = string.Empty;
-
-    [Required]
-    [StringLength(50, MinimumLength = 2)]
-    public string ProjectCode { get; set; } = string.Empty;
-}
-
 public class ProjectLiteDto
 {
     public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Code { get; set; } = string.Empty;
+    public string ProjectName { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
 }
 
 public class ClientDto

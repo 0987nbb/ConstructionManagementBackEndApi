@@ -9,5 +9,4 @@ public interface IClientService
     Task<ApiResponseDto<ClientDto>> GetByIdAsync(Guid id);
     Task<ApiResponseDto<ClientDto>> UpdateAsync(Guid id, UpdateClientDto dto);
     Task<ApiResponseDto<bool>> DeleteAsync(Guid id);
-    Task<ApiResponseDto<ClientDto>> LinkProjectAsync(Guid clientId, LinkClientProjectDto dto);
 }

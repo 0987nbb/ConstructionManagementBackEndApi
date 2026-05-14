@@ -55,14 +55,34 @@ namespace ConstructionManagement.DAL.Data
 
             modelBuilder.Entity<Project>(entity =>
             {
-                entity.HasIndex(x => x.Code).IsUnique();
+                entity.HasIndex(x => x.ProjectName);
                 entity.HasIndex(x => x.ClientId);
-                entity.Property(x => x.Name).HasMaxLength(160).IsRequired();
-                entity.Property(x => x.Code).HasMaxLength(50).IsRequired();
+                entity.HasIndex(x => x.AssignedEngineerId);
+                entity.Property(x => x.ProjectName).HasMaxLength(160).IsRequired();
+                entity.Property(x => x.Description).HasMaxLength(1000);
+                entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
+                entity.Property(x => x.Budget).HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(x => x.SpentAmount).HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(x => x.ProgressPercentage).IsRequired();
+                entity.Property(x => x.IsDeleted).IsRequired();
                 entity.HasOne(x => x.Client)
                     .WithMany(c => c.Projects)
                     .HasForeignKey(x => x.ClientId)
                     .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(x => x.AssignedEngineer)
+                    .WithMany()
+                    .HasForeignKey(x => x.AssignedEngineerId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_Projects_Status",
+                        "[Status] IN ('Planning', 'InProgress', 'OnHold', 'Completed', 'Cancelled')");
+                    t.HasCheckConstraint("CK_Projects_ProgressPercentage",
+                        "[ProgressPercentage] >= 0 AND [ProgressPercentage] <= 100");
+                    t.HasCheckConstraint("CK_Projects_Budget", "[Budget] >= 0");
+                    t.HasCheckConstraint("CK_Projects_SpentAmount", "[SpentAmount] >= 0");
+                });
             });
 
             modelBuilder.Entity<RefreshToken>(entity =>

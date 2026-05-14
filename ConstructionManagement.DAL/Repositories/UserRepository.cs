@@ -19,7 +19,10 @@ public class UserRepository : GenericRepository<AppUser>, IUserRepository
         _context.Users.AnyAsync(x => !x.IsDeleted && x.Email == normalizedEmail);
 
     public Task<AppUser?> GetByEmailAsync(string normalizedEmail) =>
-        _context.Users.FirstOrDefaultAsync(x => x.Email == normalizedEmail);
+        _context.Users
+            .Where(x => !x.IsDeleted && x.Email == normalizedEmail)
+            .OrderByDescending(x => x.CreatedAt)
+            .FirstOrDefaultAsync();
 
     public Task<AppUser?> GetByPasswordSetupTokenHashAsync(string tokenHash) =>
         _context.Users.FirstOrDefaultAsync(x =>

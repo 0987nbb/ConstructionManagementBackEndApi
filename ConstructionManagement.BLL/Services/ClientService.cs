@@ -7,13 +7,11 @@ namespace ConstructionManagement.BLL.Services;
 public class ClientService : IClientService
 {
     private readonly IClientRepository _clientRepository;
-    private readonly IProjectRepository _projectRepository;
     private readonly IAuditService _auditService;
 
-    public ClientService(IClientRepository clientRepository, IProjectRepository projectRepository, IAuditService auditService)
+    public ClientService(IClientRepository clientRepository, IAuditService auditService)
     {
         _clientRepository = clientRepository;
-        _projectRepository = projectRepository;
         _auditService = auditService;
     }
 
@@ -99,43 +97,6 @@ public class ClientService : IClientService
         return ApiResponseDto<bool>.Ok(true, "Client deleted successfully.");
     }
 
-    public async Task<ApiResponseDto<ClientDto>> LinkProjectAsync(Guid clientId, LinkClientProjectDto dto)
-    {
-        var client = await _clientRepository.GetActiveByIdAsync(clientId);
-        if (client == null)
-        {
-            return ApiResponseDto<ClientDto>.Fail("Client not found.");
-        }
-
-        var code = dto.ProjectCode.Trim().ToUpperInvariant();
-        var project = await _projectRepository.GetByCodeAsync(code);
-
-        if (project == null)
-        {
-            project = new Project
-            {
-                Name = dto.ProjectName.Trim(),
-                Code = code,
-                ClientId = clientId
-            };
-
-            await _projectRepository.AddAsync(project);
-            await _projectRepository.SaveChangesAsync();
-        }
-        else if (project.ClientId != clientId)
-        {
-            return ApiResponseDto<ClientDto>.Fail("Project is already assigned to a different client.");
-        }
-
-        if (client.Projects.All(p => p.Id != project.Id))
-        {
-            client.Projects.Add(project);
-        }
-
-        await _auditService.LogAsync(null, "client.project.linked", null, new { ClientId = clientId, ProjectCode = code });
-        return ApiResponseDto<ClientDto>.Ok(Map(client), "Project linked to client successfully.");
-    }
-
     private static ClientDto Map(Client client) => new()
     {
         Id = client.Id,
@@ -150,8 +111,8 @@ public class ClientService : IClientService
         Projects = client.Projects.Select(p => new ProjectLiteDto
         {
             Id = p.Id,
-            Name = p.Name,
-            Code = p.Code
+            ProjectName = p.ProjectName,
+            Status = p.Status
         }).ToList()
     };
 }

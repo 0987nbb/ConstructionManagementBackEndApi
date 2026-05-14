@@ -272,6 +272,15 @@ namespace ConstructionManagement.BLL.Services
             user.PasswordSetupTokenExpiresAtUtc = null;
             user.UpdatedAt = DateTime.UtcNow;
             user.IsActive = true;
+            user.FailedLoginAttempts = 0;
+            user.LastFailedLoginAtUtc = null;
+            user.LockoutEndUtc = null;
+            var normalizedRole = ApplicationRoles.Normalize(user.Role);
+            if (normalizedRole == null)
+            {
+                return new AuthResultDto { Success = false, Message = "User role is invalid. Contact administrator." };
+            }
+            user.Role = normalizedRole;
             await _refreshTokenRepository.RevokeAllActiveForUserAsync(user.Id, DateTime.UtcNow);
             await _userRepository.SaveChangesAsync();
 

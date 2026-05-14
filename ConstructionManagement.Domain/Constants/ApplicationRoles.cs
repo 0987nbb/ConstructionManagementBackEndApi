@@ -29,10 +29,13 @@ namespace ConstructionManagement.Domain.Constants
                 return null;
             }
 
-            return role.Trim().ToLowerInvariant() switch
+            var trimmed = role.Trim();
+            var canonical = new string(trimmed.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+
+            return canonical switch
             {
                 "admin" => Admin,
-                "project manager" => ProjectManager,
+                "projectmanager" => ProjectManager,
                 "engineer" => Engineer,
                 "accountant" => Accountant,
                 "client" => Client,
