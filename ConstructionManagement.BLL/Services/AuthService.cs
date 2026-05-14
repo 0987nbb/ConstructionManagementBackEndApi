@@ -278,6 +278,18 @@ namespace ConstructionManagement.BLL.Services
             return new AuthResultDto { Success = true, Message = "Password set successfully. You can now log in.", Role = user.Role };
         }
 
+        public async Task<ApiResponseDto<bool>> ValidatePasswordSetupTokenAsync(string token)
+        {
+            var tokenHash = TokenService.HashToken(token.Trim());
+            var user = await _userRepository.GetByPasswordSetupTokenHashAsync(tokenHash);
+            if (user == null || user.PasswordSetupTokenExpiresAtUtc is null || user.PasswordSetupTokenExpiresAtUtc < DateTime.UtcNow)
+            {
+                return ApiResponseDto<bool>.Fail("Invite link is invalid or expired.");
+            }
+
+            return ApiResponseDto<bool>.Ok(true, "Invite link is valid.");
+        }
+
         public async Task<ApiResponseDto<bool>> RequestPasswordResetAsync(RequestPasswordResetDto dto, string? ipAddress)
         {
             var normalizedEmail = dto.Email.Trim().ToLowerInvariant();

@@ -7,6 +7,7 @@ public interface IAuthService
     Task<AuthResultDto> Register(RegisterDto dto);
     Task<AuthResultDto> Login(LoginDto dto, string? ipAddress);
     Task<AuthResultDto> SetPassword(SetPasswordDto dto);
+    Task<ApiResponseDto<bool>> ValidatePasswordSetupTokenAsync(string token);
     Task<AuthResultDto> CompleteFirstLogin(Guid userId, CompleteFirstLoginDto dto);
     Task<AuthResultDto> RefreshTokenAsync(string refreshToken, string? ipAddress);
     Task<ApiResponseDto<bool>> LogoutAsync(Guid userId, string refreshToken, string? ipAddress);

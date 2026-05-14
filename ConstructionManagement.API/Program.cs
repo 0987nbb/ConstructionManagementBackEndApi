@@ -30,6 +30,7 @@ builder.Services.Configure<SeedAdminOptions>(builder.Configuration.GetSection("S
 
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IInvitationEmailService, InvitationEmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IClientService, ClientService>();

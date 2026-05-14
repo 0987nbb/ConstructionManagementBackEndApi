@@ -13,5 +13,4 @@ public interface IUserService
     Task<ApiResponseDto<UserDto>> AssignRoleAsync(Guid id, AssignRoleDto dto);
     Task<ApiResponseDto<UserDto>> GetProfileAsync(Guid userId);
     Task<ApiResponseDto<UserDto>> UpdateProfileAsync(Guid userId, UpdateProfileDto dto);
-    Task<ApiResponseDto<AdminPasswordResetResponseDto>> AdminResetTemporaryPasswordAsync(Guid id, AdminResetPasswordDto dto);
 }

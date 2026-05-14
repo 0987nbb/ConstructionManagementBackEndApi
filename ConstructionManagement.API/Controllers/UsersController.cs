@@ -73,16 +73,6 @@ public class UsersController : ControllerBase
         return response.Success ? Ok(response) : NotFound(response);
     }
 
-    [HttpPatch("{id:guid}/reset-password")]
-    [Authorize(Roles = ApplicationRoles.Admin)]
-    public async Task<IActionResult> AdminResetTemporaryPassword(Guid id, [FromBody] AdminResetPasswordDto dto)
-    {
-        if (!ModelState.IsValid) return ValidationProblem(ModelState);
-
-        var response = await _userService.AdminResetTemporaryPasswordAsync(id, dto);
-        return response.Success ? Ok(response) : NotFound(response);
-    }
-
     [HttpPatch("{id:guid}/role")]
     [Authorize(Roles = ApplicationRoles.Admin)]
     public async Task<IActionResult> AssignRole(Guid id, [FromBody] AssignRoleDto dto)

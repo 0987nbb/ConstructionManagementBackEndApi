@@ -2,18 +2,30 @@ using ConstructionManagement.DAL.Repositories.Interfaces;
 using ConstructionManagement.Domain.Constants;
 using ConstructionManagement.Domain.Entities;
 using ConstructionManagement.Dtos;
+using Microsoft.Extensions.Configuration;
+using System.Security.Cryptography;
 
 namespace ConstructionManagement.BLL.Services;
 
 public class UserService : IUserService
 {
+    private static readonly TimeSpan InvitationLifetime = TimeSpan.FromHours(24);
+
     private readonly IUserRepository _userRepository;
     private readonly IAuditService _auditService;
+    private readonly IInvitationEmailService _invitationEmailService;
+    private readonly IConfiguration _configuration;
 
-    public UserService(IUserRepository userRepository, IAuditService auditService)
+    public UserService(
+        IUserRepository userRepository,
+        IAuditService auditService,
+        IInvitationEmailService invitationEmailService,
+        IConfiguration configuration)
     {
         _userRepository = userRepository;
         _auditService = auditService;
+        _invitationEmailService = invitationEmailService;
+        _configuration = configuration;
     }
 
     public async Task<ApiResponseDto<CreateStaffUserResponseDto>> AddUserAsync(CreateUserDto dto)
@@ -37,31 +49,39 @@ public class UserService : IUserService
             return ApiResponseDto<CreateStaffUserResponseDto>.Fail("A user with this email already exists.");
         }
 
-        var tempPassword = dto.TemporaryPassword.Trim();
+        var inviteRawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+        var inviteTokenHash = TokenService.HashToken(inviteRawToken);
+        var inviteExpiresAtUtc = DateTime.UtcNow.Add(InvitationLifetime);
+        var frontendBaseUrl = (_configuration["Frontend:BaseUrl"] ?? "http://localhost:4200").TrimEnd('/');
+        var setupUrl = $"{frontendBaseUrl}/set-password?token={Uri.EscapeDataString(inviteRawToken)}";
+
         var entity = new AppUser
         {
             FullName = dto.FullName.Trim(),
             Email = normalizedEmail,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword, workFactor: 12),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString("N"), workFactor: 12),
             Role = normalizedRole,
             PhoneNumber = dto.PhoneNumber?.Trim(),
-            IsActive = dto.IsActive,
+            IsActive = false,
             IsDeleted = false,
             MustChangePassword = false,
             IsFirstLogin = true,
-            PasswordSetupTokenHash = null,
-            PasswordSetupTokenExpiresAtUtc = null,
+            PasswordSetupTokenHash = inviteTokenHash,
+            PasswordSetupTokenExpiresAtUtc = inviteExpiresAtUtc,
             CreatedAt = DateTime.UtcNow
         };
 
         await _userRepository.AddAsync(entity);
         await _userRepository.SaveChangesAsync();
+        await _invitationEmailService.SendWelcomeActivationEmailAsync(entity.Email, entity.FullName, setupUrl, inviteExpiresAtUtc);
+
+        await _auditService.LogAsync(entity.Id, "user.invite.sent", null, new { entity.Email, InviteExpiresAtUtc = inviteExpiresAtUtc });
 
         return ApiResponseDto<CreateStaffUserResponseDto>.Ok(new CreateStaffUserResponseDto
         {
             User = Map(entity),
-            TemporaryPassword = tempPassword
-        }, "Staff user created with temporary credentials. Share credentials securely.");
+            InviteExpiresAtUtc = inviteExpiresAtUtc
+        }, "Staff user created. Invitation email sent with secure activation link.");
     }
 
     public async Task<ApiResponseDto<List<UserDto>>> GetAllUsersAsync(UserQueryDto query)
@@ -191,32 +211,6 @@ public class UserService : IUserService
 
         await _userRepository.SaveChangesAsync();
         return ApiResponseDto<UserDto>.Ok(Map(user), "Profile updated successfully.");
-    }
-
-    public async Task<ApiResponseDto<AdminPasswordResetResponseDto>> AdminResetTemporaryPasswordAsync(Guid id, AdminResetPasswordDto dto)
-    {
-        var user = await _userRepository.GetByIdActiveAsync(id);
-        if (user == null)
-        {
-            return ApiResponseDto<AdminPasswordResetResponseDto>.Fail("User not found.");
-        }
-
-        var temp = dto.TemporaryPassword.Trim();
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(temp, workFactor: 12);
-        user.IsFirstLogin = true;
-        user.MustChangePassword = false;
-        user.PasswordSetupTokenHash = null;
-        user.PasswordSetupTokenExpiresAtUtc = null;
-        user.FailedLoginAttempts = 0;
-        user.LockoutEndUtc = null;
-        user.UpdatedAt = DateTime.UtcNow;
-
-        await _userRepository.SaveChangesAsync();
-        await _auditService.LogAsync(user.Id, "user.password.reset_by_admin", null, null);
-
-        return ApiResponseDto<AdminPasswordResetResponseDto>.Ok(
-            new AdminPasswordResetResponseDto { TemporaryPassword = temp },
-            "Temporary password issued. Require the user to sign in with it and finish first-login onboarding.");
     }
 
     private static UserDto Map(AppUser user) => new()

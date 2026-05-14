@@ -77,6 +77,19 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("validate-setup-token")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ValidateSetupToken([FromQuery] string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return BadRequest(ApiResponseDto<bool>.Fail("Token is required."));
+        }
+
+        var response = await _auth.ValidatePasswordSetupTokenAsync(token);
+        return response.Success ? Ok(response) : BadRequest(response);
+    }
+
     [HttpPost("request-password-reset")]
     [AllowAnonymous]
     public async Task<IActionResult> RequestPasswordReset([FromBody] RequestPasswordResetDto dto)

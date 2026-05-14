@@ -17,13 +17,6 @@ public class CreateUserDto
     [StringLength(50)]
     public string Role { get; set; } = string.Empty;
 
-    [Required]
-    [MinLength(8)]
-    [StringLength(128)]
-    [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$",
-        ErrorMessage = "Password must contain uppercase, lowercase, number, and special character.")]
-    public string TemporaryPassword { get; set; } = string.Empty;
-
     [Phone]
     [StringLength(20)]
     public string? PhoneNumber { get; set; }
