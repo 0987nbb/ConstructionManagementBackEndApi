@@ -97,7 +97,20 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
         var response = await _auth.RequestPasswordResetAsync(dto, HttpContext.Connection.RemoteIpAddress?.ToString());
-        return Ok(response);
+        return response.Success ? Ok(response) : StatusCode(StatusCodes.Status500InternalServerError, response);
+    }
+
+    [HttpGet("validate-reset-token")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ValidateResetToken([FromQuery] string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return BadRequest(ApiResponseDto<bool>.Fail("Token is required."));
+        }
+
+        var response = await _auth.ValidateResetPasswordTokenAsync(token);
+        return response.Success ? Ok(response) : BadRequest(response);
     }
 
     [HttpPost("reset-password")]

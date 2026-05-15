@@ -2,6 +2,7 @@ using ConstructionManagement.DAL.Repositories.Interfaces;
 using ConstructionManagement.Domain.Constants;
 using ConstructionManagement.Domain.Entities;
 using ConstructionManagement.Dtos;
+using Microsoft.Extensions.Configuration;
 
 namespace ConstructionManagement.BLL.Services
 {
@@ -16,19 +17,25 @@ namespace ConstructionManagement.BLL.Services
         private readonly IPasswordResetTokenRepository _passwordResetTokenRepository;
         private readonly TokenService _tokenService;
         private readonly IAuditService _auditService;
+        private readonly IInvitationEmailService _invitationEmailService;
+        private readonly IConfiguration _configuration;
 
         public AuthService(
             IUserRepository userRepository,
             IRefreshTokenRepository refreshTokenRepository,
             IPasswordResetTokenRepository passwordResetTokenRepository,
             TokenService tokenService,
-            IAuditService auditService)
+            IAuditService auditService,
+            IInvitationEmailService invitationEmailService,
+            IConfiguration configuration)
         {
             _userRepository = userRepository;
             _refreshTokenRepository = refreshTokenRepository;
             _passwordResetTokenRepository = passwordResetTokenRepository;
             _tokenService = tokenService;
             _auditService = auditService;
+            _invitationEmailService = invitationEmailService;
+            _configuration = configuration;
         }
 
         public async Task<AuthResultDto> Register(RegisterDto dto)
@@ -306,20 +313,39 @@ namespace ConstructionManagement.BLL.Services
 
             if (user != null && !user.IsDeleted)
             {
+                var nowUtc = DateTime.UtcNow;
+                var rawToken = TokenService.CreateUrlSafeToken();
+                var tokenHash = TokenService.HashToken(rawToken);
+                var expiresAtUtc = nowUtc.Add(PasswordResetTokenLifetime);
+                var frontendBaseUrl = (_configuration["Frontend:BaseUrl"] ?? "http://localhost:4200").TrimEnd('/');
+                var resetUrl = $"{frontendBaseUrl}/reset-password?token={Uri.EscapeDataString(rawToken)}";
+
                 await _passwordResetTokenRepository.RevokeAllActiveForUserAsync(user.Id, DateTime.UtcNow);
-                var refresh = _tokenService.CreateRefreshToken();
                 await _passwordResetTokenRepository.AddAsync(new PasswordResetToken
                 {
                     UserId = user.Id,
-                    TokenHash = refresh.TokenHash,
-                    ExpiresAtUtc = DateTime.UtcNow.Add(PasswordResetTokenLifetime)
+                    TokenHash = tokenHash,
+                    ExpiresAtUtc = expiresAtUtc
                 });
-                await _passwordResetTokenRepository.SaveChangesAsync();
 
+                await _invitationEmailService.SendPasswordResetEmailAsync(user.Email, user.FullName, resetUrl, expiresAtUtc);
+                await _passwordResetTokenRepository.SaveChangesAsync();
                 await _auditService.LogAsync(user.Id, "password_reset.requested", ipAddress, new { user.Email });
             }
 
             return ApiResponseDto<bool>.Ok(true, "If the account exists, a password reset token has been issued.");
+        }
+
+        public async Task<ApiResponseDto<bool>> ValidateResetPasswordTokenAsync(string token)
+        {
+            var tokenHash = TokenService.HashToken(token.Trim());
+            var stored = await _passwordResetTokenRepository.GetValidByTokenHashAsync(tokenHash, DateTime.UtcNow);
+            if (stored == null || stored.User == null || stored.User.IsDeleted)
+            {
+                return ApiResponseDto<bool>.Fail("Reset token is invalid or expired.");
+            }
+
+            return ApiResponseDto<bool>.Ok(true, "Reset token is valid.");
         }
 
         public async Task<ApiResponseDto<bool>> ResetPasswordAsync(ResetPasswordDto dto, string? ipAddress)

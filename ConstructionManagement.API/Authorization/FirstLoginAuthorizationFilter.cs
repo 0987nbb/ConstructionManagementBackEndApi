@@ -69,6 +69,12 @@ public sealed class FirstLoginAuthorizationFilter : IAsyncAuthorizationFilter
             return true;
         if (method == "POST" && path.Equals("/api/auth/logout", StringComparison.Ordinal))
             return true;
+        if (method == "GET" && path.Equals("/api/auth/validate-reset-token", StringComparison.Ordinal))
+            return true;
+        if (method == "POST" && path.Equals("/api/auth/reset-password", StringComparison.Ordinal))
+            return true;
+        if (method == "POST" && path.Equals("/api/auth/request-password-reset", StringComparison.Ordinal))
+            return true;
         return method == "POST" && path.Equals("/api/auth/refresh", StringComparison.Ordinal);
     }
 }

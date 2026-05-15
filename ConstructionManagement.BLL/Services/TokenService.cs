@@ -56,6 +56,14 @@ namespace ConstructionManagement.BLL.Services
             return (rawToken, tokenHash, expiresAtUtc);
         }
 
+        public static string CreateUrlSafeToken()
+        {
+            return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64))
+                .TrimEnd('=')
+                .Replace('+', '-')
+                .Replace('/', '_');
+        }
+
         public static string HashToken(string token)
         {
             var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));

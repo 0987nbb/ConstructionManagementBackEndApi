@@ -53,4 +53,45 @@ public class InvitationEmailService : IInvitationEmailService
 
         await client.SendMailAsync(message);
     }
+
+    public async Task SendPasswordResetEmailAsync(string toEmail, string fullName, string resetUrl, DateTime expiresAtUtc)
+    {
+        var host = _configuration["Smtp:Host"];
+        var fromEmail = _configuration["Smtp:FromEmail"];
+        var fromName = _configuration["Smtp:FromName"] ?? "Construction ERP";
+        var username = _configuration["Smtp:Username"];
+        var password = _configuration["Smtp:Password"];
+        var port = int.TryParse(_configuration["Smtp:Port"], out var parsedPort) ? parsedPort : 587;
+        var enableSsl = !string.Equals(_configuration["Smtp:EnableSsl"], "false", StringComparison.OrdinalIgnoreCase);
+
+        if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(fromEmail))
+        {
+            throw new InvalidOperationException("SMTP settings are incomplete. Configure Smtp:Host and Smtp:FromEmail.");
+        }
+
+        using var message = new MailMessage();
+        message.From = new MailAddress(fromEmail, fromName);
+        message.To.Add(new MailAddress(toEmail));
+        message.Subject = "Construction ERP - Password Reset Request";
+        message.IsBodyHtml = true;
+
+        var expiryText = expiresAtUtc.ToString("dddd, dd MMM yyyy 'at' HH:mm 'UTC'");
+        message.Body = $"""
+            <p>Hello {WebUtility.HtmlEncode(fullName)},</p>
+            <p>We received a request to reset your password for Construction ERP.</p>
+            <p>Reset your password using this secure link:</p>
+            <p><a href="{WebUtility.HtmlEncode(resetUrl)}">Reset My Password</a></p>
+            <p>This link expires on {WebUtility.HtmlEncode(expiryText)}.</p>
+            <p>If you did not request this, you can safely ignore this email.</p>
+            <p>Regards,<br/>Construction ERP Team</p>
+            """;
+
+        using var client = new SmtpClient(host, port) { EnableSsl = enableSsl };
+        if (!string.IsNullOrWhiteSpace(username))
+        {
+            client.Credentials = new NetworkCredential(username, password ?? string.Empty);
+        }
+
+        await client.SendMailAsync(message);
+    }
 }
