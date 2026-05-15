@@ -20,7 +20,7 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = ApplicationRoles.Admin + "," + ApplicationRoles.ProjectManager + "," + ApplicationRoles.Engineer + "," + ApplicationRoles.Client)]
+    [Authorize(Roles = ApplicationRoles.Admin + "," + ApplicationRoles.ProjectManager + "," + ApplicationRoles.Engineer + "," + ApplicationRoles.Accountant + "," + ApplicationRoles.Client)]
     public async Task<IActionResult> GetAll([FromQuery] ProjectQueryDto query)
     {
         if (!TryGetContext(out var userId, out var role, out var email))
@@ -31,7 +31,7 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = ApplicationRoles.Admin + "," + ApplicationRoles.ProjectManager + "," + ApplicationRoles.Engineer + "," + ApplicationRoles.Client)]
+    [Authorize(Roles = ApplicationRoles.Admin + "," + ApplicationRoles.ProjectManager + "," + ApplicationRoles.Engineer + "," + ApplicationRoles.Accountant + "," + ApplicationRoles.Client)]
     public async Task<IActionResult> GetById(Guid id)
     {
         if (!TryGetContext(out var userId, out var role, out var email))
@@ -84,7 +84,7 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = ApplicationRoles.Admin + "," + ApplicationRoles.ProjectManager)]
+    [Authorize(Roles = ApplicationRoles.Admin)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var response = await _projectService.DeleteAsync(id);

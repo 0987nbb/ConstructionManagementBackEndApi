@@ -28,7 +28,7 @@ public class ClientsController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = ApplicationRoles.Admin + "," + ApplicationRoles.ProjectManager)]
+    [Authorize(Roles = ApplicationRoles.Admin + "," + ApplicationRoles.ProjectManager)] // PM read-only for project planning dropdowns
     public async Task<IActionResult> GetAll([FromQuery] ClientQueryDto query)
     {
         var response = await _clientService.GetAllAsync(query);

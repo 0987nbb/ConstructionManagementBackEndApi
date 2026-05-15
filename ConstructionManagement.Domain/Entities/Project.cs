@@ -19,4 +19,5 @@ public class Project
     public DateTime? DeletedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
+    public ICollection<Site> Sites { get; set; } = new List<Site>();
 }

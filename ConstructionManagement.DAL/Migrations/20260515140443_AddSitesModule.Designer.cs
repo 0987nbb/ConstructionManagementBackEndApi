@@ -4,6 +4,7 @@ using ConstructionManagement.DAL.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ConstructionManagement.DAL.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260515140443_AddSitesModule")]
+    partial class AddSitesModule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -377,9 +380,6 @@ namespace ConstructionManagement.DAL.Migrations
                     b.Property<decimal?>("Longitude")
                         .HasColumnType("decimal(9,6)");
 
-                    b.Property<int>("ProgressPercentage")
-                        .HasColumnType("int");
-
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uniqueidentifier");
 
@@ -411,8 +411,6 @@ namespace ConstructionManagement.DAL.Migrations
 
                     b.ToTable("Sites", t =>
                         {
-                            t.HasCheckConstraint("CK_Sites_ProgressPercentage", "[ProgressPercentage] >= 0 AND [ProgressPercentage] <= 100");
-
                             t.HasCheckConstraint("CK_Sites_Status", "[Status] IN ('Pending', 'Active', 'OnHold', 'Completed')");
                         });
                 });

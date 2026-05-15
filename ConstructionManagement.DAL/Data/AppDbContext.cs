@@ -13,6 +13,7 @@ namespace ConstructionManagement.DAL.Data
         public DbSet<AppUser> Users { get; set; }
         public DbSet<Client> Clients { get; set; }
         public DbSet<Project> Projects { get; set; }
+        public DbSet<Site> Sites { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
@@ -82,6 +83,38 @@ namespace ConstructionManagement.DAL.Data
                         "[ProgressPercentage] >= 0 AND [ProgressPercentage] <= 100");
                     t.HasCheckConstraint("CK_Projects_Budget", "[Budget] >= 0");
                     t.HasCheckConstraint("CK_Projects_SpentAmount", "[SpentAmount] >= 0");
+                });
+            });
+
+            modelBuilder.Entity<Site>(entity =>
+            {
+                entity.HasIndex(x => x.SiteName);
+                entity.HasIndex(x => x.ProjectId);
+                entity.HasIndex(x => x.AssignedEngineerId);
+                entity.HasIndex(x => x.Status);
+                entity.Property(x => x.SiteName).HasMaxLength(160).IsRequired();
+                entity.Property(x => x.Location).HasMaxLength(500).IsRequired();
+                entity.Property(x => x.Description).HasMaxLength(1000);
+                entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
+                entity.Property(x => x.ProgressPercentage).IsRequired();
+                entity.Property(x => x.Latitude).HasColumnType("decimal(9,6)");
+                entity.Property(x => x.Longitude).HasColumnType("decimal(9,6)");
+                entity.Property(x => x.IsDeleted).IsRequired();
+                entity.HasOne(x => x.Project)
+                    .WithMany(p => p.Sites)
+                    .HasForeignKey(x => x.ProjectId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(x => x.AssignedEngineer)
+                    .WithMany()
+                    .HasForeignKey(x => x.AssignedEngineerId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_Sites_Status",
+                        "[Status] IN ('Pending', 'Active', 'OnHold', 'Completed')");
+                    t.HasCheckConstraint("CK_Sites_ProgressPercentage",
+                        "[ProgressPercentage] >= 0 AND [ProgressPercentage] <= 100");
                 });
             });
 

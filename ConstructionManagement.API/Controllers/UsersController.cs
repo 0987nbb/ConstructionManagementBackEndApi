@@ -30,9 +30,19 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = ApplicationRoles.Admin)]
+    [Authorize(Roles = ApplicationRoles.Admin + "," + ApplicationRoles.ProjectManager)]
     public async Task<IActionResult> GetAllUsers([FromQuery] UserQueryDto query)
     {
+        var currentRole = User.FindFirstValue(ClaimTypes.Role);
+        if (string.Equals(currentRole, ApplicationRoles.ProjectManager, StringComparison.OrdinalIgnoreCase))
+        {
+            var normalizedFilter = ApplicationRoles.Normalize(query.Role);
+            if (normalizedFilter != ApplicationRoles.Engineer)
+            {
+                return Forbid();
+            }
+        }
+
         var response = await _userService.GetAllUsersAsync(query);
         return response.Success ? Ok(response) : BadRequest(response);
     }
